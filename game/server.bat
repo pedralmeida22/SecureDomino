@@ -1,0 +1,1 @@
+start /min cmd /c start python server.py

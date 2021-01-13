@@ -4,7 +4,7 @@ import select
 import sys
 import queue
 import pickle
-from game.game import Game
+from game import Game
 import signal
 import Colors
 import time
@@ -159,10 +159,16 @@ class TableManager:
                     if not self.game.started:
                         print("player pieces ", player.num_pieces)
                         print("ALL-> ", self.game.allPlayersWithPieces())
+                        # if self.game.allPlayersWithPieces():
+                        #     for a in range (0,self.nplayers):
+                        #         p=self.game.nextPlayer()
+                        #         print("DEBUG DARIO: ".join(map(str, self.player.hand)))
+
                         self.game.nextPlayer()
                         if self.game.allPlayersWithPieces():
                             self.game.started = True
                             self.game.next_action = "play"
+
                     msg = {"action": "rcv_game_propreties"}
                     msg.update(self.game.toJson())
                     self.send_all(msg,sock)

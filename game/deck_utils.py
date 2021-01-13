@@ -6,6 +6,7 @@ class Player:
         self.name = name
         self.socket = socket
         self.hand = []
+        self.playedHand=[]
         self.num_pieces = 0
         self.score = 0
         self.host=False
@@ -53,6 +54,7 @@ class Player:
             print("Empty table")
             piece = self.hand.pop()
             self.updatePieces(-1)
+            self.playedHand.append(piece)
             res = {"action": "play_piece","piece":piece,"edge":0,"win":False}
         else:
             edges = self.in_table[0].values[0].value, self.in_table[len(self.in_table) - 1].values[1].value
@@ -88,6 +90,7 @@ class Player:
             #if there is a piece to play, remove the piece from the hand and check if the orientation is the correct
             if edge is not None:
                 piece = self.hand.pop(index)
+                self.playedHand.append(piece)
                 if flip:
                     piece.flip()
                 self.updatePieces(-1)
