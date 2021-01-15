@@ -8,6 +8,9 @@ from game import Game
 import signal
 import Colors
 import time
+import random
+from security import diffieHellman,encodeBase64, decodeBase64
+from security import SymCipher
 
 
 
@@ -28,6 +31,8 @@ class TableManager:
         #disconnecting players when CTRL + C is pressed
         signal.signal(signal.SIGINT, self.signal_handler)
         #signal.pause()
+        self.sharedBase = 5
+        self.dh_keys = {}
 
         print("Server is On")
 
@@ -82,7 +87,9 @@ class TableManager:
 
         for sock in self.inputs:
             if sock is not self.server and sock is not socket :
-                self.message_queue[sock].put(pickle.dumps(msg))
+                msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                #print("encruptALL: ", msgEncrypt)
+                self.message_queue[sock].put(pickle.dumps(msgEncrypt))
                 if sock not in self.outputs:
                     self.outputs.append(sock)
         time.sleep(0.1) #give server time to send all messages
@@ -95,20 +102,36 @@ class TableManager:
 
     def handle_action(self, data, sock):
         data = pickle.loads(data)
+        print("DATA: ", data)
+        print("")
+        if sock in self.dh_keys.keys():
+            if len(self.dh_keys[sock]) == 3:
+                data = decodeBase64(self.dh_keys[sock][2].decipher(data))
         action = data["action"]
         print("\n"+action)
         if data:
             if action == "hello":
-                msg = {"action": "login", "msg": "Welcome to the server, what will be your name?"}
+                privateNumber = random.randint(1, 16)
+                keyToSend = diffieHellman(self.sharedBase,privateNumber)
+                self.dh_keys[sock] = [privateNumber]
+                msg = {"action": "login", "msg": "Welcome to the server, what will be your name?", "key":keyToSend}
                 return pickle.dumps(msg)
             # TODO login mechanic is flawed, only nickname
             if action == "req_login":
                 print("User {} requests login, with nickname {}".format(sock.getpeername(), data["msg"]))
+                keyRecev = int(data["key"])
+                sharedKey = diffieHellman(keyRecev, self.dh_keys[sock][0])
+                print("SharedKey: ", sharedKey)
+                self.dh_keys[sock].append(sharedKey)
+                self.dh_keys[sock].append(SymCipher(str(sharedKey)))
+                
                 if not self.game.hasHost():  # There is no game for this tabla manager
                     self.game.addPlayer(data["msg"],sock,self.game.deck.pieces_per_player) # Adding host
                     msg = {"action": "you_host", "msg": Colors.BRed+"You are the host of the game"+Colors.Color_Off}
+                    print("msg: ", msg)
+                    encrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                     print("User "+Colors.BBlue+"{}".format(data["msg"])+Colors.Color_Off+" has created a game, he is the first to join")
-                    return pickle.dumps(msg)
+                    return pickle.dumps(encrypt)
                 else:
                     if not self.game.hasPlayer(data["msg"]):
                         if self.game.isFull():
@@ -129,26 +152,31 @@ class TableManager:
                                 print(Colors.BIPurple+"The game is Full"+Colors.Color_Off)
                                 msg = {"action": "waiting_for_host", "msg": Colors.BRed+"Waiting for host to start the game"+Colors.Color_Off}
                                 self.send_all(msg,sock)
-                            return pickle.dumps(msg)
+                            msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                            return pickle.dumps(msgEncrypt)
                     else:
                         msg = {"action": "disconnect", "msg": "You are already in the game"}
                         print("User {} tried to join a game he was already in".format(data["msg"]))
-                        return pickle.dumps(msg)
+                        msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                        return pickle.dumps(msgEncrypt)
 
             if action == "start_game":
                 msg = {"action": "host_start_game", "msg": Colors.BYellow+"The Host started the game"+Colors.Color_Off}
                 self.send_all(msg,sock)
-                return pickle.dumps(msg)
+                msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                return pickle.dumps(msgEncrypt)
 
             if action == "ready_to_play":
                 msg = {"action": "host_start_game", "msg": Colors.BYellow+"The Host started the game"+Colors.Color_Off}
                 self.send_all(msg,sock)
-                return pickle.dumps(msg)
+                msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                return pickle.dumps(msgEncrypt)
 
             if action == "get_game_propreties":
                 msg = {"action": "rcv_game_propreties"}
                 msg.update(self.game.toJson())
-                return pickle.dumps(msg)
+                msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                return pickle.dumps(msgEncrypt)
 
             player = self.game.currentPlayer()
             #check if the request is from a valid player
@@ -210,10 +238,12 @@ class TableManager:
                         msg.update(self.game.toJson())
 
                     self.send_all(msg, sock)
-                    return pickle.dumps(msg)
+                    msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                    return pickle.dumps(msgEncrypt)
             else:
                 msg = {"action": "wait","msg":Colors.BRed+"Not Your Turn"+Colors.Color_Off}
-            return pickle.dumps(msg)
+            msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+            return pickle.dumps(msgEncrypt)
 
     #Function to handle CTRL + C Command disconnecting all players
     def signal_handler(self,sig, frame):
@@ -224,7 +254,8 @@ class TableManager:
         for sock in self.inputs:
             if sock is not self.server:
                 print("Disconnecting player " + str(i) + "/" + str(size))
-                sock.send(pickle.dumps(msg))
+                msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                sock.send(pickle.dumps(msgEncrypt))
                 i+=1
         print("Disconnecting Server ")
         self.server.close()

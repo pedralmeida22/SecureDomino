@@ -6,11 +6,14 @@ import Colors
 import string
 from deck_utils import Player
 import random
-
+from security import diffieHellman,encodeBase64, decodeBase64
+from security import SymCipher
 
 class client():
 
     def __init__(self, host, port):
+        self.dh_keys = {}
+        self.sharedBase = 5
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.connect((host, port))
@@ -31,12 +34,23 @@ class client():
 
     def handle_data(self, data):
         data = pickle.loads(data)
+        print("DATA: ", data)
+        print("")
+        if "server" in self.dh_keys:
+            data = decodeBase64(self.dh_keys['server'][2].decipher(data))
         action = data["action"]
         print("\n" + action)
         if action == "login":
             nickname = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # input(data["msg"])
             print("Your name is " + Colors.BBlue + nickname + Colors.Color_Off)
-            msg = {"action": "req_login", "msg": nickname}
+            print("keyRecive", data["key"])
+            #diffieHellman
+            privateNumber = random.randint(1,16)
+            keyToSend = diffieHellman(self.sharedBase,privateNumber)
+            sharedKey = diffieHellman(int(data["key"]),privateNumber)
+            self.dh_keys['server'] = [privateNumber,sharedKey,SymCipher(str(sharedKey))]
+            print("SharedKey: ",sharedKey)
+            msg = {"action": "req_login", "msg": nickname,"key": keyToSend}
             self.player = Player(nickname, self.sock)
             self.sock.send(pickle.dumps(msg))
             return
@@ -51,7 +65,8 @@ class client():
             if self.player.host:
                 input(Colors.BGreen + "PRESS ENTER TO START THE GAME" + Colors.Color_Off)
                 msg = {"action": "start_game"}
-                self.sock.send(pickle.dumps(msg))
+                msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                self.sock.send(pickle.dumps(msgEncrypt))
                 print("Sent ", msg)
             else:
                 print(data["msg"])
@@ -59,7 +74,8 @@ class client():
         elif action == "host_start_game":
             print(data["msg"])
             msg = {"action": "get_game_propreties"}
-            self.sock.send(pickle.dumps(msg))
+            msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+            self.sock.send(pickle.dumps(msgEncrypt))
             print("Sent ", msg)
 
         elif action == "rcv_game_propreties":
@@ -100,11 +116,13 @@ class client():
                         piece = self.player.deck.pop()
                         self.player.insertInHand(piece)
                         msg = {"action": "get_piece", "deck": self.player.deck}
-                        self.sock.send(pickle.dumps(msg))
+                        msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                        self.sock.send(pickle.dumps(msgEncrypt))
                 if data["next_action"] == "play":
                     # input(Colors.BGreen+"Press ENter \n\n"+Colors.Color_Off)
                     msg = self.player.play()
-                    self.sock.send(pickle.dumps(msg))
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
 
         elif action == "end_game":
             winner = data["winner"]
