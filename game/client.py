@@ -59,6 +59,16 @@ class client():
             self.player.host = True
         elif action == "new_player":
             print(data["msg"])
+            nome = data["msg"].split(" ")[2]
+            # diffieHellman
+            privateNumber = random.randint(1, 16)
+            keyToSend = diffieHellman(self.sharedBase, privateNumber)
+
+            self.dh_keys[nome] = [privateNumber]
+
+            msg = {"action": "TalkToPlayer", "actionPlayer": "openSession", "msg": "Hello","key": keyToSend, "from":self.player.name, "to": nome}
+            msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+            self.sock.send(pickle.dumps(msgEncrypt))
             print("There are " + str(data["nplayers"]) + "\\" + str(data["game_players"]))
 
         elif action == "waiting_for_host":
@@ -70,6 +80,45 @@ class client():
                 print("Sent ", msg)
             else:
                 print(data["msg"])
+
+        elif action == "TalkToPlayer":
+            print("DATA_PlayerAntes:", data)
+            player = data["from"] #quem mandou a mensagem
+            if data["from"] in self.dh_keys.keys():
+                if len(self.dh_keys[data["from"]]) == 3:
+                    data = decodeBase64(self.dh_keys[data["from"]][2].decipher(data["msg"]))
+            print("DATA_Player:", data)
+            actionPlayer = data["actionPlayer"]
+
+            if actionPlayer == "openSession":
+
+                if player not in self.dh_keys.keys():
+                    # diffieHellman
+                    privateNumber = random.randint(1, 16)
+                    keyToSend = diffieHellman(self.sharedBase, privateNumber)
+                    keyRecevied = int(data["key"])
+                    print("Key recebida: ", keyRecevied)
+                    sharedKey = diffieHellman(keyRecevied, privateNumber)
+                    self.dh_keys[player] = [privateNumber,sharedKey,SymCipher(str(sharedKey))]
+                    msg = {"action": "TalkToPlayer", "actionPlayer": "openSession", "msg": "Hello", "key": keyToSend,
+                           "from": self.player.name, "to": player}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
+                else:
+                    keyRecevied = int(data["key"])
+                    print("Key recebida: ",keyRecevied)
+                    sharedKey = diffieHellman(keyRecevied, self.dh_keys[player][0])
+                    self.dh_keys[player].append(sharedKey)
+                    self.dh_keys[player].append(SymCipher(str(sharedKey)))
+                    msgToPlayer = {"actionPlayer": "SessionEstabelicida", "msg": "WE GUICCI"}
+                    msgToPlayerEncrypt = self.dh_keys[player][2].cipher(encodeBase64(msgToPlayer))
+                    msg = {"action": "TalkToPlayer", "msg": msgToPlayerEncrypt, "from": self.player.name, "to": player}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
+
+            if actionPlayer == "SessionEstabelicida":
+                print("Sessao Estabecida com ", player)
+
 
         elif action == "host_start_game":
             print(data["msg"])

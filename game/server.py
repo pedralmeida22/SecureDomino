@@ -33,6 +33,7 @@ class TableManager:
         #signal.pause()
         self.sharedBase = 5
         self.dh_keys = {}
+        self.players = {}
 
         print("Server is On")
 
@@ -56,9 +57,10 @@ class TableManager:
                     data = sock.recv(4096)
                     if data:
                         to_send = self.handle_action(data, sock)
-                        self.message_queue[sock].put(to_send)  # add our response to the queue
-                        if sock not in self.outputs:
-                            self.outputs.append(sock)  # add this socket to the writeable sockets
+                        if to_send is not None:
+                            self.message_queue[sock].put(to_send)  # add our response to the queue
+                            if sock not in self.outputs:
+                                self.outputs.append(sock)  # add this socket to the writeable sockets
                     else:
                         if sock in self.outputs:
                             self.outputs.remove(sock)
@@ -100,6 +102,12 @@ class TableManager:
         if self.game.host_sock not in self.outputs:
             self.outputs.append(self.game.host_sock)
 
+    def send_to_player(self,msg,sock):
+        msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+        self.message_queue[sock].put(pickle.dumps(msgEncrypt))
+        if sock not in self.outputs:
+            self.outputs.append(sock)
+
     def handle_action(self, data, sock):
         data = pickle.loads(data)
         print("DATA: ", data)
@@ -110,6 +118,13 @@ class TableManager:
         action = data["action"]
         print("\n"+action)
         if data:
+            if action == "TalkToPlayer":
+                playerTo = data["to"]
+                print("Sending message to ", playerTo)
+                print(self.players[playerTo])
+                self.send_to_player(data,self.players[playerTo])
+                return None
+
             if action == "hello":
                 privateNumber = random.randint(1, 16)
                 keyToSend = diffieHellman(self.sharedBase,privateNumber)
@@ -127,6 +142,7 @@ class TableManager:
                 
                 if not self.game.hasHost():  # There is no game for this tabla manager
                     self.game.addPlayer(data["msg"],sock,self.game.deck.pieces_per_player) # Adding host
+                    self.players[data["msg"]] = sock
                     msg = {"action": "you_host", "msg": Colors.BRed+"You are the host of the game"+Colors.Color_Off}
                     print("msg: ", msg)
                     encrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
@@ -140,10 +156,10 @@ class TableManager:
                             return pickle.dumps(msg)
                         else:
                             self.game.addPlayer(data["msg"], sock,self.game.deck.pieces_per_player)  # Adding player
-                            msg = {"action": "new_player", "msg": "New Player "+Colors.BGreen+data["msg"]+Colors.Color_Off+" registered in game",
+                            msg = {"action": "new_player", "msg": "New Player "+data["msg"]+" registered in game",
                                    "nplayers": self.game.nplayers, "game_players": self.game.max_players}
                             print("User "+Colors.BBlue+"{}".format(data["msg"])+Colors.Color_Off+" joined the game")
-
+                            self.players[data["msg"]] = sock
                             #send info to all players
                             self.send_all(msg)
 
