@@ -26,7 +26,7 @@ class SymCipher:
         self.generateKey()
 
     def getKey(self):
-        self.key
+        return self.key
 
     def generateKey(self):
         salt = b'r\00'
