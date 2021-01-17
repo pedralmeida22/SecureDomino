@@ -3,7 +3,7 @@ from deck_utils import Deck,Player
 class Game:
     def __init__(self,max_players):
         self.deck = Deck()
-        print("Deck created \n",self.deck)
+        print("Deck created \n")
         self.max_players = max_players
         self.nplayers = 0
         self.players = []

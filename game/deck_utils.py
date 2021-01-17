@@ -1,5 +1,9 @@
 import random
-
+import string
+from security import encodeBase64
+import hmac
+import hashlib
+import base64
 
 class Player:
     def __init__(self, name,socket,pieces_per_player=None):
@@ -127,15 +131,36 @@ class SubPiece:
 class Deck:
 
     deck = []
+    psedoDeck = []
+    hashKeys = dict()
 
     def __init__(self,pieces_per_player=5):
         with open('pieces', 'r') as file:
             pieces = file.read()
+        indexes = random.sample(range(100),28)
         for piece in pieces.split(","):
             piece = piece.replace(" ", "").split("-")
-            self.deck.append(Piece(piece[0], piece[1]))
+            peca = Piece(piece[0], piece[1])
+            if len(self.hashKeys.keys()) == 0:
+                key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+                print(key)
+            else:
+                key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+                while key in self.hashKeys.values():
+                    key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+                    print(key)
 
+            dig = hmac.new(bytes(key, "utf-8"), msg=encodeBase64(peca), digestmod=hashlib.sha256).digest()
+            res = base64.b64encode(dig).decode()
+            index = indexes.pop()
+            self.hashKeys[res] = index
+            self.psedoDeck.append((index, res))
+            self.deck.append((index,Piece(piece[0], piece[1])))
+
+        #print("DECK: ",self.deck)
+        print("PSEUDO: ",self.psedoDeck)
         self.npieces = len(self.deck)
+        print("NUMERO: ",self.npieces)
         self.pieces_per_player = pieces_per_player
         self.in_table = []
 
