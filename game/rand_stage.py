@@ -20,6 +20,8 @@ for i in deck:
     # guardar tuples e key
     store.update({encrypt: key})
 
+    #TODO VER SE A KEY É UNICA OU NAO
+
 # shuffle
 random.shuffle(new_deck)
 print(new_deck)

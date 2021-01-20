@@ -11,6 +11,7 @@ import time
 import random
 from security import diffieHellman,encodeBase64, decodeBase64
 from security import SymCipher
+from cc_utils import check_signature
 
 
 
@@ -20,6 +21,7 @@ from security import SymCipher
 class TableManager:
 
     def __init__(self, host, port,nplayers=4):
+        check_signature()
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.setblocking(False)  # non-blocking for select
@@ -34,6 +36,7 @@ class TableManager:
         self.sharedBase = 5
         self.dh_keys = {}
         self.players = {}
+        self.pseudos=dict()
 
         print("Server is On")
 
@@ -234,7 +237,16 @@ class TableManager:
                     if data["win"]:
                         if player.checkifWin():
                             print(Colors.BGreen+" WINNER "+player.name+Colors.Color_Off)
-                            msg = {"action": "end_game","winner":player.name}
+                            #msg = {"action": "end_game","winner":player.name}
+                            choice=input("Save points? (blank/n")
+                            if choice is "":
+                                print("Reading card...")
+                                serial=str(check_signature())
+                                self.pseudos[serial]= player.name+"10"
+                                print(self.pseudos[serial])
+
+                            msg = {"action": "end_game", "winner": player.name}
+
                     else:
                         msg = {"action": "rcv_game_propreties"}
                     msg.update(self.game.toJson())

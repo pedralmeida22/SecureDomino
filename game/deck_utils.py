@@ -155,7 +155,7 @@ class Deck:
             index = indexes.pop()
             self.hashKeys[res] = index
             self.psedoDeck.append((index, res))
-            self.deck.append((index,Piece(piece[0], piece[1])))
+            self.deck.append((Piece(piece[0], piece[1])))
 
         #print("DECK: ",self.deck)
         print("PSEUDO: ",self.psedoDeck)

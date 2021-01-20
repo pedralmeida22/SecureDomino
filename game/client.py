@@ -173,6 +173,7 @@ class client():
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
+
         elif action == "end_game":
             winner = data["winner"]
 
