@@ -6,9 +6,10 @@ import Colors
 import string
 from deck_utils import Player
 import random
-from security import diffieHellman,encodeBase64, decodeBase64
+from security import diffieHellman, encodeBase64, decodeBase64
 from security import SymCipher
 from cc_utils import getSerial
+
 
 class client():
 
@@ -26,7 +27,6 @@ class client():
         self.randomB1 = 0
         self.randomB2 = 0
         self.bitCom = 0
-
 
     def receiveData(self):
         while True:
@@ -47,13 +47,13 @@ class client():
             nickname = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # input(data["msg"])
             print("Your name is " + Colors.BBlue + nickname + Colors.Color_Off)
             print("keyRecive", data["key"])
-            #diffieHellman
-            privateNumber = random.randint(1,16)
-            keyToSend = diffieHellman(self.sharedBase,privateNumber)
-            sharedKey = diffieHellman(int(data["key"]),privateNumber)
-            self.dh_keys['server'] = [privateNumber,sharedKey,SymCipher(str(sharedKey))]
-            print("SharedKey: ",sharedKey)
-            msg = {"action": "req_login", "msg": nickname,"key": keyToSend}
+            # diffieHellman
+            privateNumber = random.randint(1, 16)
+            keyToSend = diffieHellman(self.sharedBase, privateNumber)
+            sharedKey = diffieHellman(int(data["key"]), privateNumber)
+            self.dh_keys['server'] = [privateNumber, sharedKey, SymCipher(str(sharedKey))]
+            print("SharedKey: ", sharedKey)
+            msg = {"action": "req_login", "msg": nickname, "key": keyToSend}
             self.player = Player(nickname, self.sock)
             self.sock.send(pickle.dumps(msg))
             return
@@ -69,7 +69,8 @@ class client():
 
             self.dh_keys[nome] = [privateNumber]
 
-            msg = {"action": "TalkToPlayer", "actionPlayer": "openSession", "msg": "Hello","key": keyToSend, "from":self.player.name, "to": nome}
+            msg = {"action": "TalkToPlayer", "actionPlayer": "openSession", "msg": "Hello", "key": keyToSend,
+                   "from": self.player.name, "to": nome}
             msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
             self.sock.send(pickle.dumps(msgEncrypt))
             print("There are " + str(data["nplayers"]) + "\\" + str(data["game_players"]))
@@ -86,7 +87,7 @@ class client():
 
         elif action == "TalkToPlayer":
             print("DATA_PlayerAntes:", data)
-            player = data["from"] #quem mandou a mensagem
+            player = data["from"]  # quem mandou a mensagem
             if data["from"] in self.dh_keys.keys():
                 if len(self.dh_keys[data["from"]]) == 3:
                     data = decodeBase64(self.dh_keys[data["from"]][2].decipher(data["msg"]))
@@ -102,14 +103,14 @@ class client():
                     keyRecevied = int(data["key"])
                     print("Key recebida: ", keyRecevied)
                     sharedKey = diffieHellman(keyRecevied, privateNumber)
-                    self.dh_keys[player] = [privateNumber,sharedKey,SymCipher(str(sharedKey))]
+                    self.dh_keys[player] = [privateNumber, sharedKey, SymCipher(str(sharedKey))]
                     msg = {"action": "TalkToPlayer", "actionPlayer": "openSession", "msg": "Hello", "key": keyToSend,
                            "from": self.player.name, "to": player}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
                 else:
                     keyRecevied = int(data["key"])
-                    print("Key recebida: ",keyRecevied)
+                    print("Key recebida: ", keyRecevied)
                     sharedKey = diffieHellman(keyRecevied, self.dh_keys[player][0])
                     self.dh_keys[player].append(sharedKey)
                     self.dh_keys[player].append(SymCipher(str(sharedKey)))
@@ -152,8 +153,8 @@ class client():
                 a = hash(self.randomB1)
                 b = hash(self.randomB2)
                 c = orderedTiles.__hash__
-                self.bitCom = str(a)+str(b)+str(c)
-                    # hash((self.randomB1, self.randomB2, orderedTiles))
+                self.bitCom = str(a) + str(b) + str(c)
+                # hash((self.randomB1, self.randomB2, orderedTiles))
                 makePublic = (self.randomB1, self.bitCom)
 
             print("in table -> " + ' '.join(map(str, data["in_table"])) + "\n")
@@ -163,38 +164,63 @@ class client():
 
                 if data["next_action"] == "encryptDeck":
                     new_deck = self.player.encryptDeck(data["deck"])
-                    print("NEW_DECK:::",new_deck)
-                    msg = {"action" : "encryptDeck", "deck": new_deck}
+                    print("NEW_DECK:::", new_deck)
+                    msg = {"action": "encryptDeck", "deck": new_deck}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
-                    print("SSIZE::",len(msgEncrypt))
+                    print("SSIZE::", len(msgEncrypt))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
                 if data["next_action"] == "get_piece":
                     print("AHSIDAPBÇDASKJD\n\n\n")
                     if not self.player.ready_to_play:
-                        # input("Press ENter \n\n")
-                        random.shuffle(self.player.deck)
-                        piece = self.player.deck.pop()
-                        self.player.insertInHand(piece)
+                        r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
+                        print(r)
+                        # input("enter:")
+                        # pickup
+                        if r == ['pickup']:
+                            print("pickup\n\n\n")
+                            random.shuffle(self.player.deck)
+                            piece = self.player.deck.pop()
+                            self.player.insertInHand(piece)
+
+                        # "back off"
+                        else:
+                            r2 = random.choices(['switch', 'backoff'], weights=[1, 1], k=1)
+                            print(r2)
+                            # input("enter:")
+                            # trocar pecas
+                            if r2 == ['switch']:
+                                print("switch\n\n\n")
+                                # tirar um peça do deck
+                                random.shuffle(self.player.deck)
+                                piece = self.player.deck.pop()
+                                self.player.insertInHand(piece)
+                                print(self.player.hand)
+                                # devolver uma peça ao deck
+                                hand_to_deck = self.player.removeFromHand()
+                                self.player.deck.append(hand_to_deck)
+
+                            else:  # truly back off
+                                print("Nadaaa\n\n\n")
 
                         msg = {"action": "get_piece", "deck": self.player.deck}
                         msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                         self.sock.send(pickle.dumps(msgEncrypt))
+
                 if data["next_action"] == "play":
                     # input(Colors.BGreen+"Press ENter \n\n"+Colors.Color_Off)
                     msg = self.player.play()
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
-
         elif action == "end_game":
             winner = data["winner"]
 
             orderedPlayed = self.player.playedHand
-            a= hash(self.randomB1)
-            b= hash(self.randomB2)
-            c= orderedPlayed
-            ver = str(a)+str(b)+str(c.__hash__)
+            a = hash(self.randomB1)
+            b = hash(self.randomB2)
+            c = orderedPlayed
+            ver = str(a) + str(b) + str(c.__hash__)
             if ver == self.bitCom:
                 print("NÃO FEZ BATOTA")
             else:

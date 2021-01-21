@@ -49,6 +49,16 @@ class Player:
         self.hand.append(piece)
         self.hand.sort(key=lambda p : int(p.values[0].value)+int(p.values[1].value))
 
+    def removeFromHand(self):
+        self.num_pieces -= 1
+        # baralha para tirar um peça random
+        print(self.hand)
+        random.shuffle(self.hand)
+        hand_to_deck = self.hand.pop()
+        # ordenar de volta
+        self.hand.sort(key=lambda p : int(p.values[0].value)+int(p.values[1].value))
+        return hand_to_deck
+
     def checkifWin(self):
         print("Winner ",self.num_pieces == 0)
         return self.num_pieces == 0
