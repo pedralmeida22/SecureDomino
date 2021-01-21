@@ -14,6 +14,7 @@ class client():
     def __init__(self, host, port):
         self.dh_keys = {}
         self.sharedBase = 5
+        self.sharedBaseClients = 7
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.connect((host, port))
@@ -28,7 +29,7 @@ class client():
 
     def receiveData(self):
         while True:
-            data = self.sock.recv(4096)
+            data = self.sock.recv(100000)
             if data:
                 self.handle_data(data)
 
@@ -157,6 +158,14 @@ class client():
             print("Current player ->", player_name)
             print("next Action ->", data["next_action"])
             if self.player.name == data["next_player"]:
+
+                if data["next_action"] == "encryptDeck":
+                    new_deck = self.player.encryptDeck(data["deck"])
+                    print("NEW_DECK:::",new_deck)
+                    msg = {"action" : "encryptDeck", "deck": new_deck}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    print("SSIZE::",len(msgEncrypt))
+                    self.sock.send(pickle.dumps(msgEncrypt))
 
                 if data["next_action"] == "get_piece":
                     if not self.player.ready_to_play:

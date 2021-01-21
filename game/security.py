@@ -62,5 +62,18 @@ class SymCipher:
         plaintext = decryptor.update(cipherText) + decryptor.finalize()
         paddedText = unpadder.update(plaintext) + unpadder.finalize()
         #print("p: ",paddedText)
-        return plaintext
+        return paddedText
 
+    @staticmethod
+    def decipherKey(msg, key):
+        iv = msg[:16]
+        cipherText = msg[16:]
+
+        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), default_backend())
+        decryptor = cipher.decryptor()
+        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+
+        plaintext = decryptor.update(cipherText) + decryptor.finalize()
+        paddedText = unpadder.update(plaintext) + unpadder.finalize()
+        # print("p: ",paddedText)
+        return paddedText

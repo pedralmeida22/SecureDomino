@@ -1,6 +1,6 @@
 import random
 import string
-from security import encodeBase64
+from security import encodeBase64, SymCipher, SymCipherCFB
 import hmac
 import hashlib
 import base64
@@ -19,6 +19,7 @@ class Player:
         self.in_table = []
         self.deck = []
         self.nopiece = False
+        self.keyMapDeck = dict()
 
     def __str__(self):
         return str(self.toJson())
@@ -51,6 +52,31 @@ class Player:
     def checkifWin(self):
         print("Winner ",self.num_pieces == 0)
         return self.num_pieces == 0
+
+    def encryptDeck(self, deck):
+        new_deck = []
+        for i in deck:
+            c = SymCipher(''.join(random.choices(string.ascii_uppercase + string.digits, k=5)))
+
+            key = c.getKey()
+            #print("key: ", key)
+            # encrypt tuple
+            encrypt = c.cipher(encodeBase64(i))
+            #print("str: ", encrypt)
+
+            while encrypt in deck:
+                print("AQUI")
+                c = SymCipher(''.join(random.choices(string.ascii_uppercase + string.digits, k=5)))
+
+                key = c.getKey()
+
+                encrypt = c.cipher(str(i))
+
+            new_deck.append(encrypt)
+
+            # guardar tuples e key
+            self.keyMapDeck.update({encrypt: key})
+        return new_deck
 
     def play(self):
         res = {}
@@ -131,7 +157,7 @@ class SubPiece:
 class Deck:
 
     deck = []
-    psedoDeck = []
+    deckNormal = []
     hashKeys = dict()
 
     def __init__(self,pieces_per_player=5):
@@ -154,11 +180,11 @@ class Deck:
             res = base64.b64encode(dig).decode()
             index = indexes.pop()
             self.hashKeys[res] = index
-            self.psedoDeck.append((index, res))
-            self.deck.append((Piece(piece[0], piece[1])))
+            self.deck.append((index, res))
+            self.deckNormal.append((index, Piece(piece[0], piece[1])))
 
         #print("DECK: ",self.deck)
-        print("PSEUDO: ",self.psedoDeck)
+        #print("PSEUDO: ",self.psedoDeck)
         self.npieces = len(self.deck)
         print("NUMERO: ",self.npieces)
         self.pieces_per_player = pieces_per_player

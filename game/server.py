@@ -21,7 +21,6 @@ from cc_utils import check_signature
 class TableManager:
 
     def __init__(self, host, port,nplayers=4):
-        check_signature()
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.setblocking(False)  # non-blocking for select
@@ -37,6 +36,7 @@ class TableManager:
         self.dh_keys = {}
         self.players = {}
         self.pseudos=dict()
+        self.allEncryptDeck = False
 
         print("Server is On")
 
@@ -57,7 +57,7 @@ class TableManager:
                     self.message_queue[connection] = queue.Queue()
 
                 else:  # We are receiving data from a client socket
-                    data = sock.recv(4096)
+                    data = sock.recv(100000)
                     if data:
                         to_send = self.handle_action(data, sock)
                         if to_send is not None:
@@ -114,10 +114,11 @@ class TableManager:
     def handle_action(self, data, sock):
         data = pickle.loads(data)
         print("DATA: ", data)
-        print("")
+
         if sock in self.dh_keys.keys():
             if len(self.dh_keys[sock]) == 3:
                 data = decodeBase64(self.dh_keys[sock][2].decipher(data))
+        print("MSG-->",data)
         action = data["action"]
         print("\n"+action)
         if data:
@@ -199,8 +200,19 @@ class TableManager:
 
             player = self.game.currentPlayer()
             #check if the request is from a valid player
-            if  sock == player.socket:
-                if action == "get_piece":
+            if sock == player.socket:
+                if action == "encryptDeck":
+                    self.game.deck.deck = data["deck"]
+                    print("NEW_DECK:::",self.game.deck.deck)
+                    self.game.nextPlayer()
+                    if self.game.allEncriptDeck:
+                        self.game.next_action = "get_piece"
+
+                    msg = {"action": "rcv_game_propreties"}
+                    msg.update(self.game.toJson())
+                    self.send_all(msg, sock)
+
+                elif action == "get_piece":
                     self.game.deck.deck=data["deck"]
                     player.updatePieces(1)
                     if not self.game.started:

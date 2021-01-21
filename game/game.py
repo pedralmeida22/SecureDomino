@@ -9,9 +9,10 @@ class Game:
         self.players = []
         self.player_index = 0
         self.init_distribution = True
-        self.next_action="get_piece"
+        self.next_action="encryptDeck"  #"get_piece"
         self.started = False
         self.all_ready_to_play = False
+        self.allEncriptDeck = False
 
     def checkDeadLock(self):
         return all([ player.nopiece for player in self.players ])
@@ -25,6 +26,7 @@ class Game:
     def nextPlayer(self):
         self.player_index +=1
         if self.player_index == self.max_players:
+            self.allEncriptDeck = True
             self.player_index = 0
         return self.players[self.player_index]
 
