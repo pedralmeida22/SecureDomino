@@ -231,7 +231,7 @@ class client():
                 choice = input("Save points? (blank/n")
                 if choice is "":
                     print("Reading card...")
-                    serial = str(getSerial())
+                    serial = getSerial()
                     msg = {"action": "reg_points", "msg": serial}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))

@@ -201,6 +201,9 @@ class TableManager:
 
             if action == "reg_points":
                 self.points[data["msg"]]=10
+                print("GAJO:")
+                s=SymCipher("cc")
+                print(decodeBase64(s.decipher(data["msg"])))
                 print(self.points[data["msg"]])
 
             player = self.game.currentPlayer()
