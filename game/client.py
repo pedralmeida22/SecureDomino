@@ -8,6 +8,7 @@ from deck_utils import Player
 import random
 from security import diffieHellman,encodeBase64, decodeBase64
 from security import SymCipher
+from cc_utils import getSerial
 
 class client():
 
@@ -40,6 +41,7 @@ class client():
         if "server" in self.dh_keys:
             data = decodeBase64(self.dh_keys['server'][2].decipher(data))
         action = data["action"]
+        print(data)
         print("\n" + action)
         if action == "login":
             nickname = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # input(data["msg"])
@@ -168,11 +170,13 @@ class client():
                     self.sock.send(pickle.dumps(msgEncrypt))
 
                 if data["next_action"] == "get_piece":
+                    print("AHSIDAPBÇDASKJD\n\n\n")
                     if not self.player.ready_to_play:
                         # input("Press ENter \n\n")
                         random.shuffle(self.player.deck)
                         piece = self.player.deck.pop()
                         self.player.insertInHand(piece)
+
                         msg = {"action": "get_piece", "deck": self.player.deck}
                         msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                         self.sock.send(pickle.dumps(msgEncrypt))
@@ -198,6 +202,13 @@ class client():
 
             if data["winner"] == self.player.name:
                 winner = Colors.BRed + "YOU" + Colors.Color_Off
+                choice = input("Save points? (blank/n")
+                if choice is "":
+                    print("Reading card...")
+                    serial = str(getSerial())
+                    msg = {"action": "reg_points", "msg": serial}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
             else:
                 winner = Colors.BBlue + winner + Colors.Color_Off
             print(Colors.BGreen + "End GAME, THE WINNER IS: " + winner)

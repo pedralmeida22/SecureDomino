@@ -37,6 +37,7 @@ class TableManager:
         self.players = {}
         self.pseudos=dict()
         self.allEncryptDeck = False
+        self.points=dict()
 
         print("Server is On")
 
@@ -198,6 +199,10 @@ class TableManager:
                 msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                 return pickle.dumps(msgEncrypt)
 
+            if action == "reg_points":
+                self.points[data["msg"]]=10
+                print(self.points[data["msg"]])
+
             player = self.game.currentPlayer()
             #check if the request is from a valid player
             if sock == player.socket:
@@ -250,12 +255,12 @@ class TableManager:
                         if player.checkifWin():
                             print(Colors.BGreen+" WINNER "+player.name+Colors.Color_Off)
                             #msg = {"action": "end_game","winner":player.name}
-                            choice=input("Save points? (blank/n")
-                            if choice is "":
-                                print("Reading card...")
-                                serial=str(check_signature())
-                                self.pseudos[serial]= player.name+"10"
-                                print(self.pseudos[serial])
+                            # choice=input("Save points? (blank/n")
+                            # if choice is "":
+                            #     print("Reading card...")
+                            #     serial=str(check_signature())
+                            #     self.pseudos[serial]= player.name+"10"
+                            #     print(self.pseudos[serial])
 
                             msg = {"action": "end_game", "winner": player.name}
 

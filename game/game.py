@@ -9,7 +9,7 @@ class Game:
         self.players = []
         self.player_index = 0
         self.init_distribution = True
-        self.next_action="encryptDeck"  #"get_piece"
+        self.next_action="get_piece" #"encryptDeck"  #"get_piece"
         self.started = False
         self.all_ready_to_play = False
         self.allEncriptDeck = False

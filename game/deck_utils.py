@@ -1,6 +1,6 @@
 import random
 import string
-from security import encodeBase64, SymCipher, SymCipherCFB
+from security import encodeBase64, SymCipher
 import hmac
 import hashlib
 import base64
@@ -163,7 +163,7 @@ class Deck:
     def __init__(self,pieces_per_player=5):
         with open('pieces', 'r') as file:
             pieces = file.read()
-        indexes = random.sample(range(100),28)
+        indexes = random.sample(range(28),28)
         for piece in pieces.split(","):
             piece = piece.replace(" ", "").split("-")
             peca = Piece(piece[0], piece[1])
@@ -180,7 +180,8 @@ class Deck:
             res = base64.b64encode(dig).decode()
             index = indexes.pop()
             self.hashKeys[res] = index
-            self.deck.append((index, res))
+            #self.deck.append((index, res))
+            self.deck.append(Piece(piece[0], piece[1]))
             self.deckNormal.append((index, Piece(piece[0], piece[1])))
 
         #print("DECK: ",self.deck)
