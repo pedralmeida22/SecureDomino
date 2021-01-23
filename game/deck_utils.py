@@ -1,6 +1,6 @@
 import random
 import string
-from security import encodeBase64, SymCipher
+from security import encodeBase64, SymCipher, decodeBase64
 import hmac
 import hashlib
 import base64
@@ -47,7 +47,7 @@ class Player:
     def insertInHand(self,piece):
         self.num_pieces += 1
         self.hand.append(piece)
-        self.hand.sort(key=lambda p : int(p.values[0].value)+int(p.values[1].value))
+        #self.hand.sort(key=lambda p : int(p.values[0].value)+int(p.values[1].value))
 
     def removeFromHand(self):
         self.num_pieces -= 1
@@ -56,7 +56,7 @@ class Player:
         random.shuffle(self.hand)
         hand_to_deck = self.hand.pop()
         # ordenar de volta
-        self.hand.sort(key=lambda p : int(p.values[0].value)+int(p.values[1].value))
+        #self.hand.sort(key=lambda p : int(p.values[0].value)+int(p.values[1].value))
         return hand_to_deck
 
     def checkifWin(self):
@@ -80,13 +80,24 @@ class Player:
 
                 key = c.getKey()
 
-                encrypt = c.cipher(str(i))
+                encrypt = c.cipher(encodeBase64(i))
 
             new_deck.append(encrypt)
 
             # guardar tuples e key
             self.keyMapDeck.update({encrypt: key})
         return new_deck
+
+    def decipherHand(self, keys):
+        tmp = []
+        for tile in self.hand:
+            if tile in keys.keys():
+                key = keys[tile]
+                plaintext = decodeBase64(SymCipher.decipherKey(tile, key))
+                print("Peca: ", plaintext)
+                tmp.append(plaintext)
+        if len(tmp) > 0:
+            self.hand = tmp
 
     def play(self):
         res = {}

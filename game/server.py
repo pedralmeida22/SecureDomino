@@ -58,7 +58,7 @@ class TableManager:
                     self.message_queue[connection] = queue.Queue()
 
                 else:  # We are receiving data from a client socket
-                    data = sock.recv(100000)
+                    data = sock.recv(500000)
                     if data:
                         to_send = self.handle_action(data, sock)
                         if to_send is not None:
@@ -211,10 +211,14 @@ class TableManager:
             if sock == player.socket:
                 if action == "encryptDeck":
                     self.game.deck.deck = data["deck"]
-                    print("NEW_DECK:::",self.game.deck.deck)
+                    self.game.completeDeck = data["deck"]  # guarda o deck todo, para depois saber os tuplos escolhidos
+
+                    #print("NEW_DECK:::",self.game.deck.deck)
                     self.game.nextPlayer()
+                    msg = {"action": "rcv_game_propreties"}
                     if self.game.allEncriptDeck:
-                        self.game.next_action = "get_piece"
+                        self.game.player_index = self.nplayers-1
+                        self.game.next_action =  "get_piece"
 
                     msg = {"action": "rcv_game_propreties"}
                     msg.update(self.game.toJson())
@@ -222,6 +226,7 @@ class TableManager:
 
                 elif action == "get_piece":
                     self.game.deck.deck=data["deck"]
+                    print("GETPIECEDECK--->", len(self.game.deck.deck))
                     player.updatePieces(1)
                     if not self.game.started:
                         print("player pieces ", player.num_pieces)
@@ -234,11 +239,26 @@ class TableManager:
                         self.game.nextPlayer()
                         if self.game.allPlayersWithPieces():
                             self.game.started = True
-                            self.game.next_action = "play"
+                            self.game.next_action = "revelationStage"#"play"
+                            self.game.player_index = self.nplayers-1
 
                     msg = {"action": "rcv_game_propreties"}
                     msg.update(self.game.toJson())
                     self.send_all(msg,sock)
+
+                elif action == "revelationStage":
+                    keys = data["keys"]
+
+                    self.game.decipherCompleteDeck(keys)
+
+                    print("COMPLETEDECK--->", self.game.completeDeck)
+                    self.game.previousPlayer()
+                    if self.game.allSendKeys:
+                        self.game.next_action = "play"
+
+                    msg = {"action": "rcv_game_propreties", "keys": keys}
+                    msg.update(self.game.toJson())
+                    self.send_all(msg, sock)
 
                 elif action == "play_piece":
                     next_p = self.game.nextPlayer()

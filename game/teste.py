@@ -5,15 +5,16 @@ import hashlib
 import hmac
 import base64
 import pickle
-from security import encodeBase64, decodeBase64
+from security import encodeBase64, decodeBase64, SymCipher
 import hmac
 import hashlib
 import base64
 
 
 
-deckSecure = []
-hashKeys = dict()
+deck = []
+new_deck = []
+store = dict()
 
 
 with open('pieces', 'r') as file:
@@ -22,19 +23,79 @@ indexes = random.sample(range(100), 28)
 for piece in pieces.split(","):
     piece = piece.replace(" ", "").split("-")
     peca = Piece(piece[0], piece[1])
-    if len(hashKeys.keys()) == 0:
-        key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
-        print(key)
-    else:
-        key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
-        while key in hashKeys.values():
-            key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
-            print(key)
+    deck.append(peca)
 
-    dig = hmac.new(bytes(key, "utf-8"), msg=encodeBase64(peca), digestmod=hashlib.sha256).digest()
-    res = base64.b64encode(dig).decode()
-    index = indexes.pop()
-    hashKeys[index] = key
-    deckSecure.append((index, res))
+for i in deck:
+    c = SymCipher(''.join(random.choices(string.ascii_uppercase + string.digits, k=5)))
 
-print(deckSecure)
+    key = c.getKey()
+    #print("key: ", key)
+    # encrypt tuple
+    encrypt = c.cipher(encodeBase64(i))
+    #print("str: ", encrypt)
+
+    while encrypt in new_deck:
+        print("AQUI")
+        c = SymCipher(''.join(random.choices(string.ascii_uppercase + string.digits, k=5)))
+
+        key = c.getKey()
+
+        encrypt = c.cipher(str(i))
+
+
+    new_deck.append(encrypt)
+
+    # guardar tuples e key
+    store.update({encrypt: key})
+
+    #TODO VER SE A KEY É UNICA OU NAO
+
+deck2 = []
+keys = dict()
+
+for i in new_deck:
+    c = SymCipher(''.join(random.choices(string.ascii_uppercase + string.digits, k=5)))
+
+    key = c.getKey()
+    #print("key: ", key)
+    # encrypt tuple
+    encrypt = c.cipher(encodeBase64(i))
+    #print("str: ", encrypt)
+
+    while encrypt in new_deck:
+        print("AQUI")
+        c = SymCipher(''.join(random.choices(string.ascii_uppercase + string.digits, k=5)))
+
+        key = c.getKey()
+
+        encrypt = c.cipher(str(i))
+
+
+    deck2.append(encrypt)
+
+    # guardar tuples e key
+    keys.update({encrypt: key})
+
+    #TODO VER SE A KEY É UNICA OU NAO
+
+res = []
+
+for i in deck2:
+
+    key = keys[i]
+    print("key: ", key)
+    # encrypt tuple
+    encrypt = decodeBase64(SymCipher.decipherKey(i,key))
+    print("str: ", encrypt)
+    res.append(encrypt)
+
+deck2 = res
+
+for i in deck2:
+
+    key = store[i]
+    print("key: ", key)
+    # encrypt tuple
+    encrypt = decodeBase64(SymCipher.decipherKey(i,key))
+    print("str: ", encrypt)
+

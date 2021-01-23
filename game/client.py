@@ -30,18 +30,18 @@ class client():
 
     def receiveData(self):
         while True:
-            data = self.sock.recv(100000)
+            data = self.sock.recv(1000000)
             if data:
                 self.handle_data(data)
 
     def handle_data(self, data):
         data = pickle.loads(data)
-        print("DATA: ", data)
+        #print("DATA: ", data)
         print("")
         if "server" in self.dh_keys:
             data = decodeBase64(self.dh_keys['server'][2].decipher(data))
         action = data["action"]
-        print(data)
+        #print(data)
         print("\n" + action)
         if action == "login":
             nickname = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # input(data["msg"])
@@ -86,7 +86,7 @@ class client():
                 print(data["msg"])
 
         elif action == "TalkToPlayer":
-            print("DATA_PlayerAntes:", data)
+            #print("DATA_PlayerAntes:", data)
             player = data["from"]  # quem mandou a mensagem
             if data["from"] in self.dh_keys.keys():
                 if len(self.dh_keys[data["from"]]) == 3:
@@ -138,14 +138,16 @@ class client():
             self.player.in_table = data["in_table"]
             self.player.deck = data["deck"]
             player_name = data["next_player"]
+            if "teste" in data.keys():
+                print("#############",data["teste"])
             if data["next_player"] == self.player.name:
                 player_name = Colors.BRed + "YOU" + Colors.Color_Off
-            print("deck -> " + ' '.join(map(str, self.player.deck)) + "\n")
-            print("hand -> " + ' '.join(map(str, self.player.hand)))
+            #print("deck -> " + ' '.join(map(str, self.player.deck)) + "\n")
+            #print("hand -> " + ' '.join(map(str, self.player.hand)))
 
             if len(self.player.hand) is 5:
-                print(set(self.player.hand))
-                print("playedHand -> " + ' '.join(map(str, self.player.playedHand)))
+                #print(set(self.player.hand))
+                #print("playedHand -> " + ' '.join(map(str, self.player.playedHand)))
 
                 self.randomB1 = random.random()
                 self.randomB2 = random.random()
@@ -160,55 +162,84 @@ class client():
             print("in table -> " + ' '.join(map(str, data["in_table"])) + "\n")
             print("Current player ->", player_name)
             print("next Action ->", data["next_action"])
+
+
+            if "keys" in data.keys():
+                self.player.decipherHand(data["keys"])
+
             if self.player.name == data["next_player"]:
 
                 if data["next_action"] == "encryptDeck":
                     new_deck = self.player.encryptDeck(data["deck"])
-                    print("NEW_DECK:::", new_deck)
+                    random.shuffle(new_deck)                            #reordena o baralho
+                    #print("NEW_DECK:::", new_deck)
                     msg = {"action": "encryptDeck", "deck": new_deck}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
-                    print("SSIZE::", len(msgEncrypt))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
                 if data["next_action"] == "get_piece":
                     print("AHSIDAPBÇDASKJD\n\n\n")
+                    #input("STOP")
                     if not self.player.ready_to_play:
-                        r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
-                        print(r)
-                        # input("enter:")
-                        # pickup
-                        if r == ['pickup']:
-                            print("pickup\n\n\n")
-                            random.shuffle(self.player.deck)
-                            piece = self.player.deck.pop()
-                            self.player.insertInHand(piece)
-
-                        # "back off"
-                        else:
-                            r2 = random.choices(['switch', 'backoff'], weights=[1, 1], k=1)
-                            print(r2)
-                            # input("enter:")
-                            # trocar pecas
-                            if r2 == ['switch']:
-                                print("switch\n\n\n")
-                                # tirar um peça do deck
-                                random.shuffle(self.player.deck)
-                                piece = self.player.deck.pop()
-                                self.player.insertInHand(piece)
-                                print(self.player.hand)
-                                # devolver uma peça ao deck
-                                hand_to_deck = self.player.removeFromHand()
-                                self.player.deck.append(hand_to_deck)
-
-                            else:  # truly back off
-                                print("Nadaaa\n\n\n")
-
+                        # r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
+                        # print(r)
+                        # # input("enter:")
+                        # # pickup
+                        # if r == ['pickup']:
+                        #     print("pickup\n\n\n")
+                        #     #random.shuffle(self.player.deck)
+                        #     piece = self.player.deck.pop()
+                        #     print("PLAYERPICK-->",len(self.player.deck))
+                        #     self.player.insertInHand(piece)
+                        #
+                        # # "back off"
+                        # else:
+                        #     r2 = random.choices(['switch', 'backoff'], weights=[1, 1], k=1)
+                        #     print(r2)
+                        #     # input("enter:")
+                        #     # trocar pecas
+                        #     if r2 == ['switch']:
+                        #         print("switch\n\n\n")
+                        #         # tirar um peça do deck
+                        #         #random.shuxffle(self.player.deck)
+                        #         piece = self.player.deck.pop()
+                        #         self.player.insertInHand(piece)
+                        #         print(self.player.hand)
+                        #         # devolver uma peça ao deck
+                        #         hand_to_deck = self.player.removeFromHand()
+                        #         self.player.deck.append(hand_to_deck)
+                        #
+                        #     else:  # truly back off
+                        #         print("Nadaaa\n\n\n")
+                        #random.shuffle(self.player.deck)
+                        piece = self.player.deck.pop()
+                        self.player.insertInHand(piece)
                         msg = {"action": "get_piece", "deck": self.player.deck}
                         msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                         self.sock.send(pickle.dumps(msgEncrypt))
 
+                if data["next_action"] == "revelationStage":
+                    print("CompleteDeck--->", len(data["completeDeck"]))
+                    print("hand -> " + ' '.join(map(str, self.player.hand)))
+                    #print("Deck--->", len(data["deck"]))
+
+                    tilesInHands = [tile for tile in data["completeDeck"] if tile not in data["deck"]]
+                    print("tilesHands--->", len(tilesInHands))
+
+                    keys = {encrypt: key for (encrypt, key) in self.player.keyMapDeck.items() if encrypt in tilesInHands}
+                    #print("Keys --->", keys)
+                    self.player.decipherHand(keys)
+                    #input("Press ENter \n\n")
+                    msg = {"action": "revelationStage", "keys": keys}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
+
+
                 if data["next_action"] == "play":
+                    print("MAO--->",self.player.hand)
+                    input("Enter\n\n\n")
                     # input(Colors.BGreen+"Press ENter \n\n"+Colors.Color_Off)
+                    #print("HAND----->",self.player.hand)
                     msg = self.player.play()
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))

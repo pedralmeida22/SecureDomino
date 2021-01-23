@@ -1,18 +1,24 @@
 from deck_utils import Deck,Player
+from security import decodeBase64, SymCipher
+
 
 class Game:
     def __init__(self,max_players):
         self.deck = Deck()
+        self.completeDeck = None
+        self.decipherDeck = []
         print("Deck created \n")
         self.max_players = max_players
         self.nplayers = 0
         self.players = []
         self.player_index = 0
         self.init_distribution = True
-        self.next_action="get_piece" #"encryptDeck"  #"get_piece"
+        self.next_action="encryptDeck"  #"get_piece"
         self.started = False
         self.all_ready_to_play = False
         self.allEncriptDeck = False
+        self.allSendKeys = False
+
 
     def checkDeadLock(self):
         return all([ player.nopiece for player in self.players ])
@@ -28,6 +34,13 @@ class Game:
         if self.player_index == self.max_players:
             self.allEncriptDeck = True
             self.player_index = 0
+        return self.players[self.player_index]
+
+    def previousPlayer(self):
+        self.player_index -= 1
+        if self.player_index < 0:
+            self.allSendKeys = True
+            self.player_index = self.max_players - 1
         return self.players[self.player_index]
 
     def addPlayer(self,name,socket,pieces):
@@ -51,6 +64,17 @@ class Game:
 
     def toJson(self):
         msg = {"next_player":self.players[self.player_index].name ,"nplayers":self.nplayers
-            ,"next_action":self.next_action}
+            ,"next_action":self.next_action, "completeDeck": self.completeDeck}
         msg.update(self.deck.toJson())
         return msg
+
+    def decipherCompleteDeck(self, keys):
+        tmp = []
+        for tile in self.completeDeck:
+            if tile in keys.keys():
+                key = keys[tile]
+                plaintext = decodeBase64(SymCipher.decipherKey(tile, key))
+                print("PECA: ", plaintext)
+                tmp.append(plaintext)
+        if len(tmp) > 0:
+            self.completeDeck = tmp + self.deck.deck    #adiciona as que não estao nas hands
