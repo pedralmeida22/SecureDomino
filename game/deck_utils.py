@@ -20,6 +20,7 @@ class Player:
         self.deck = []
         self.nopiece = False
         self.keyMapDeck = dict()
+        self.pickingPiece = False
 
     def __str__(self):
         return str(self.toJson())
@@ -36,7 +37,8 @@ class Player:
         random.shuffle(self.deck)
         piece = self.deck.pop()
         self.insertInHand(piece)
-        return {"action": "get_piece", "deck": self.deck}
+        self.pickingPiece = True
+        return {"action": "get_pieceInGame", "deck": self.deck, "piece" : piece}
 
     def updatePieces(self,i):
         self.num_pieces+=i
@@ -98,6 +100,24 @@ class Player:
                 tmp.append(plaintext)
         if len(tmp) > 0:
             self.hand = tmp
+
+    def decipherPiece(self, key, peca):
+        pieces = [p for p in self.hand if not isinstance(p,Piece)]
+        if len(pieces) == 0:
+            return None
+        piece = pieces[0]
+        print("ASDASD",piece)
+        if peca == piece:
+            print("TRUEEEEEEE", len(self.hand))
+            self.hand.remove(piece)
+            print("HAND",len(self.hand))
+            newPiece = decodeBase64(SymCipher.decipherKey(piece, key))
+            print("PECA::::",newPiece)
+            self.hand.append(newPiece)
+            return newPiece
+        else:
+            return None
+
 
     def play(self):
         res = {}

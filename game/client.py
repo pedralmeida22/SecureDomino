@@ -4,7 +4,7 @@ import pickle
 import random
 import Colors
 import string
-from deck_utils import Player
+from deck_utils import Player, Piece
 import random
 from security import diffieHellman, encodeBase64, decodeBase64
 from security import SymCipher
@@ -43,6 +43,33 @@ class client():
         action = data["action"]
         #print(data)
         print("\n" + action)
+        if action == "KeyToPiecePlayer":
+            key = data["key"]
+            print("KEYTOPIECE",data["piece"])
+            piece = self.player.decipherPiece(key,data["piece"])
+            if isinstance(piece,Piece):
+                self.player.pickingPiece = False
+                msg = {"action": "get_piece", "deck": self.player.deck}
+                msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                self.sock.send(pickle.dumps(msgEncrypt))
+
+        if action == "whatIsThisPiece":
+            #print("PECA;;;;",data["piece"])
+            if data["piece"] in self.player.keyMapDeck.keys():
+                print("TRUEEEEEEEEEEE")
+                msg = {"action": "KeyToPiece", "key": self.player.keyMapDeck[data["piece"]], "piece": data["piece"]}
+                if self.player.pickingPiece:
+                    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1111111")
+                    piece = self.player.decipherPiece(self.player.keyMapDeck[data["piece"]], data["piece"])
+                    msg.update({"sendKey" : False})
+                    if isinstance(piece, Piece):
+                        self.player.pickingPiece = False
+                        msg = {"action": "get_piece", "deck": self.player.deck, "key": self.player.keyMapDeck[data["piece"]], "piece": data["piece"]}
+
+                msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                self.sock.send(pickle.dumps(msgEncrypt))
+                print("DONE")
+
         if action == "login":
             nickname = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # input(data["msg"])
             print("Your name is " + Colors.BBlue + nickname + Colors.Color_Off)
@@ -237,7 +264,7 @@ class client():
 
                 if data["next_action"] == "play":
                     print("MAO--->",self.player.hand)
-                    input("Enter\n\n\n")
+                    #input("Enter\n\n\n")
                     # input(Colors.BGreen+"Press ENter \n\n"+Colors.Color_Off)
                     #print("HAND----->",self.player.hand)
                     msg = self.player.play()

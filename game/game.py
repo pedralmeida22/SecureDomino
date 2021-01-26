@@ -5,7 +5,7 @@ from security import decodeBase64, SymCipher
 class Game:
     def __init__(self,max_players):
         self.deck = Deck()
-        self.completeDeck = None
+        self.completeDeck = []
         self.decipherDeck = []
         print("Deck created \n")
         self.max_players = max_players
@@ -40,7 +40,7 @@ class Game:
         self.player_index -= 1
         if self.player_index < 0:
             self.allSendKeys = True
-            self.player_index = self.max_players - 1
+            self.player_index = 0
         return self.players[self.player_index]
 
     def addPlayer(self,name,socket,pieces):
@@ -64,7 +64,7 @@ class Game:
 
     def toJson(self):
         msg = {"next_player":self.players[self.player_index].name ,"nplayers":self.nplayers
-            ,"next_action":self.next_action, "completeDeck": self.completeDeck}
+            ,"next_action":self.next_action}
         msg.update(self.deck.toJson())
         return msg
 
@@ -78,3 +78,11 @@ class Game:
                 tmp.append(plaintext)
         if len(tmp) > 0:
             self.completeDeck = tmp + self.deck.deck    #adiciona as que não estao nas hands
+
+    def decipherPiece(self,piece, key):
+        index = self.completeDeck.index(piece)
+        oldPiece = self.completeDeck.pop(index)
+        newPiece = decodeBase64(SymCipher.decipherKey(oldPiece,key))
+        print("PECA::::",newPiece)
+        self.completeDeck.append(newPiece)
+        return newPiece
