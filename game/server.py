@@ -252,6 +252,7 @@ class TableManager:
 
                 elif action == "get_pieceInGame":
                     self.game.deck.deck = data["deck"]
+                    player.updatePieces(1)
                     print("PECA--->", data["piece"])
                     self.playerGetPiece = sock
                     msg = {"action": "whatIsThisPiece", "piece": data["piece"]}
@@ -261,11 +262,15 @@ class TableManager:
 
 
                 elif action == "get_piece":
+
+                    if len(self.game.deck.deck) > len(data["deck"]): #player pick piece and not pass or swap
+                        player.updatePieces(1)
+
                     self.playerGetPiece = None
                     self.playerIndexRevealKey = self.nplayers - 1
                     self.game.deck.deck=data["deck"]
                     print("GETPIECEDECK--->", len(self.game.deck.deck))
-                    player.updatePieces(1)
+
                     msg = {"action": "rcv_game_propreties"}
                     if "key" in data.keys():                            #o primeiro a encriptar seja a pedir peça in game
                         piece = self.game.decipherPiece(data["piece"], data["key"])

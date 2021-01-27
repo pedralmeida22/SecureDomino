@@ -49,10 +49,12 @@ class Player:
     def insertInHand(self,piece):
         self.num_pieces += 1
         self.hand.append(piece)
+        if self.num_pieces == self.pieces_per_player:
+            self.ready_to_play = True
         #self.hand.sort(key=lambda p : int(p.values[0].value)+int(p.values[1].value))
 
     def removeFromHand(self):
-        self.num_pieces -= 1
+        #self.num_pieces -= 1
         # baralha para tirar um peça random
         print(self.hand)
         random.shuffle(self.hand)

@@ -2,6 +2,8 @@ import socket
 import sys
 import pickle
 import random
+import time
+
 import Colors
 import string
 from deck_utils import Player, Piece
@@ -206,44 +208,46 @@ class client():
 
                 if data["next_action"] == "get_piece":
                     print("AHSIDAPBÇDASKJD\n\n\n")
-                    #input("STOP")
                     if not self.player.ready_to_play:
-                        # r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
-                        # print(r)
-                        # # input("enter:")
-                        # # pickup
-                        # if r == ['pickup']:
-                        #     print("pickup\n\n\n")
-                        #     #random.shuffle(self.player.deck)
-                        #     piece = self.player.deck.pop()
-                        #     print("PLAYERPICK-->",len(self.player.deck))
-                        #     self.player.insertInHand(piece)
-                        #
-                        # # "back off"
-                        # else:
-                        #     r2 = random.choices(['switch', 'backoff'], weights=[1, 1], k=1)
-                        #     print(r2)
-                        #     # input("enter:")
-                        #     # trocar pecas
-                        #     if r2 == ['switch']:
-                        #         print("switch\n\n\n")
-                        #         # tirar um peça do deck
-                        #         #random.shuxffle(self.player.deck)
-                        #         piece = self.player.deck.pop()
-                        #         self.player.insertInHand(piece)
-                        #         print(self.player.hand)
-                        #         # devolver uma peça ao deck
-                        #         hand_to_deck = self.player.removeFromHand()
-                        #         self.player.deck.append(hand_to_deck)
-                        #
-                        #     else:  # truly back off
-                        #         print("Nadaaa\n\n\n")
+
+                        r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
+                        print(r)
+                        # input("enter:")
+                        # pickup
+                        if r == ['pickup']:
+                            print("pickup\n\n\n")
+                            #random.shuffle(self.player.deck)
+                            piece = self.player.deck.pop()
+                            print("PLAYERPICK-->",len(self.player.deck))
+                            self.player.insertInHand(piece)
+
+                        # "back off"
+                        else:
+                            r2 = random.choices(['switch', 'backoff'], weights=[1, 1], k=1)
+                            print(r2)
+                            # input("enter:")
+                            # trocar pecas
+                            if r2 == ['switch']:
+                                print("switch\n\n\n")
+                                # tirar um peça do deck
+                                #random.shuxffle(self.player.deck)
+                                piece = self.player.deck.pop()
+                                self.player.hand.append(piece)
+                                print(self.player.hand)
+                                # devolver uma peça ao deck
+                                hand_to_deck = self.player.removeFromHand()
+                                self.player.deck.append(hand_to_deck)
+
+                            else:  # truly back off
+                                print("Nadaaa\n\n\n")
                         #random.shuffle(self.player.deck)
-                        piece = self.player.deck.pop()
-                        self.player.insertInHand(piece)
-                        msg = {"action": "get_piece", "deck": self.player.deck}
-                        msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
-                        self.sock.send(pickle.dumps(msgEncrypt))
+                        # piece = self.player.deck.pop()
+                        # self.player.insertInHand(piece)
+                        #input("STOP")
+                    #time.sleep(0.05)
+                    msg = {"action": "get_piece", "deck": self.player.deck}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
 
                 if data["next_action"] == "revelationStage":
                     print("CompleteDeck--->", len(data["completeDeck"]))
