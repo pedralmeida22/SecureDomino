@@ -1,6 +1,6 @@
 import random
 import string
-from security import encodeBase64, SymCipher, decodeBase64
+from security import encodeBase64, SymCipher, decodeBase64, AsymCipher
 import hmac
 import hashlib
 import base64
@@ -21,6 +21,8 @@ class Player:
         self.nopiece = False
         self.keyMapDeck = dict()
         self.pickingPiece = False
+        self.public_keys_list = [None] * 28
+        self.nplayers = None
 
     def __str__(self):
         return str(self.toJson())
@@ -120,6 +122,41 @@ class Player:
         else:
             return None
 
+    def find_piece_without_key(self):
+        for i in range(len(self.hand)):
+            if len(self.hand[i]) == 2:
+                return i, self.hand[i][0]
+
+    def check_added_piece(self):
+        for i in self.hand:
+            print("hand: ", self.hand)
+            if len(i) == 2:
+                return True
+        return False
+
+    def preparation(self):
+        # mudar probabilidades
+        decision = random.choices(['add', 'backoff'], weights=[1, 1], k=1)
+        print(decision)
+
+        if decision == ['add']:
+            index_pecas, index_lista = self.find_piece_without_key()
+            if index_pecas is not None:
+                # gerar key pair
+                asym = AsymCipher(1024)
+
+                # guardar chave privada no tuple
+                tp = self.hand[index_pecas]
+                l = list(tp)
+                l.append(asym.get_private_key())
+                self.hand[index_pecas] = tuple(l)
+                # print("pecas:", self.hand)
+
+                # add chave publica à lista
+                self.public_keys_list[index_lista] = asym.get_public_key()
+                # print("publicas", self.public_keys_list)
+
+        return self.public_keys_list
 
     def play(self):
         res = {}
@@ -223,8 +260,8 @@ class Deck:
             res = base64.b64encode(dig).decode()
             index = indexes.pop()
             self.hashKeys[res] = index
-            #self.deck.append((index, res))
-            self.deck.append(Piece(piece[0], piece[1]))
+            self.deck.append((index, res))
+            # self.deck.append(Piece(piece[0], piece[1]))
             self.deckNormal.append((index, Piece(piece[0], piece[1])))
 
         #print("DECK: ",self.deck)

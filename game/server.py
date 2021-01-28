@@ -298,16 +298,29 @@ class TableManager:
 
                     print("COMPLETEDECK--->", self.game.completeDeck)
                     self.game.previousPlayer()
-                    if self.game.allSendKeys:
-                        self.game.next_action = "play"
 
                     msg = {"action": "rcv_game_propreties", "keys": keys, "completeDeck": self.game.completeDeck}
+                    if self.game.allSendKeys:
+                        self.game.next_action = "prep_stage"
+                        msg.update({'public_keys': self.game.public_keys_list})
+
+                    msg.update(self.game.toJson())
+                    self.send_all(msg, sock)
+
+                elif action == "prep_stage":
+                    self.game.public_keys_list = data["public_keys"]
+                    self.game.nextPlayer()
+
+                    if self.game.check_added_to_public_list():
+                        self.game.next_action = "play"
+                    # input("enter")
+                    msg = {"action": "rcv_game_propreties", "public_keys": self.game.public_keys_list}
                     msg.update(self.game.toJson())
                     self.send_all(msg, sock)
 
                 elif action == "play_piece":
                     next_p = self.game.nextPlayer()
-                    if data["piece"]is not None:
+                    if data["piece"] is not None:
                         player.nopiece = False
                         player.updatePieces(-1)
                         if data["edge"]==0:

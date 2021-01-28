@@ -8,6 +8,7 @@ class Game:
         self.completeDeck = []
         self.decipherDeck = []
         print("Deck created \n")
+        self.public_keys_list = [None] * 28
         self.max_players = max_players
         self.nplayers = 0
         self.players = []
@@ -86,3 +87,16 @@ class Game:
         print("PECA::::",newPiece)
         self.completeDeck.append(newPiece)
         return newPiece
+
+    def check_added_to_public_list(self):
+        count = 0
+        print("pu list: ", self.public_keys_list)
+        for i in self.public_keys_list:
+            if i is None:
+                count += 1
+        print("count: ", count)
+        print("n pecas: ", self.players[0].pieces_per_player)
+        # n nones expected = total de peças - num_players * num_pecas_player
+        if count == 28 - self.nplayers * self.players[0].pieces_per_player:
+            return True
+        return False

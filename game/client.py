@@ -210,7 +210,8 @@ class client():
                     print("AHSIDAPBÇDASKJD\n\n\n")
                     if not self.player.ready_to_play:
 
-                        r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
+                        # r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
+                        r = random.choices(['pickup', 'backoff'], weights=[5, 1], k=1)
                         print(r)
                         # input("enter:")
                         # pickup
@@ -265,6 +266,16 @@ class client():
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
+                if data["next_action"] == "prep_stage":
+                    print("prep")
+                    self.player.public_keys_list = data["public_keys"]
+                    if self.player.check_added_piece():
+                        print("checks passed")
+                        public_keys_list = self.player.preparation()
+
+                    msg = {"action": "prep_stage", "public_keys": self.player.public_keys_list}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
 
                 if data["next_action"] == "play":
                     print("MAO--->",self.player.hand)

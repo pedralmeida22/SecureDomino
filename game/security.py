@@ -4,9 +4,12 @@ import pickle
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives.ciphers import Cipher , algorithms , modes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import padding as pd
+from cryptography.hazmat.primitives import serialization
 import os
 
 def diffieHellman(base,expoente):
@@ -77,3 +80,24 @@ class SymCipher:
         paddedText = unpadder.update(plaintext) + unpadder.finalize()
         # print("p: ",paddedText)
         return paddedText
+
+
+class AsymCipher:  # rsa
+    def __init__(self, key_size=1024):
+        self.priv_key = rsa.generate_private_key(65537, key_size, default_backend())
+
+    def get_private_key(self):
+        return self.priv_key
+
+    def get_public_key(self):
+        pem = self.priv_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        return pem
+
+    def cipher(self, msg):
+        return self.get_public_key().encrypt(msg, pd.OAEP(pd.MGF1(hashes.SHA256()), hashes.SHA256(), None))
+
+    def decipher(self, ciphertext):
+        return self.get_private_key().decrypt(ciphertext, pd.OAEP(pd.MGF1(hashes.SHA256()), hashes.SHA256(), None))
