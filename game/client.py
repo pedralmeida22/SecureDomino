@@ -49,9 +49,9 @@ class client():
             key = data["key"]
             print("KEYTOPIECE",data["piece"])
             piece = self.player.decipherPiece(key,data["piece"])
-            if isinstance(piece,Piece):
+            if isinstance(piece,tuple):
                 self.player.pickingPiece = False
-                msg = {"action": "get_piece", "deck": self.player.deck}
+                msg = {"action": "tuploToPiece", "deck": self.player.deck,"tuplo":piece}
                 msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                 self.sock.send(pickle.dumps(msgEncrypt))
 
@@ -64,13 +64,22 @@ class client():
                     print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1111111")
                     piece = self.player.decipherPiece(self.player.keyMapDeck[data["piece"]], data["piece"])
                     msg.update({"sendKey" : False})
-                    if isinstance(piece, Piece):
+                    if isinstance(piece, tuple):
                         self.player.pickingPiece = False
-                        msg = {"action": "get_piece", "deck": self.player.deck, "key": self.player.keyMapDeck[data["piece"]], "piece": data["piece"]}
+                        msg = {"action": "tuploToPiece", "deck": self.player.deck, "key": self.player.keyMapDeck[data["piece"]], "piece": data["piece"],
+                               "tuplo":piece}
 
                 msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                 self.sock.send(pickle.dumps(msgEncrypt))
-                print("DONE")
+                print("AQUIIIII")
+        
+        if action == "tuploToPiece":
+            print(data["piece"])
+            self.player.traduçãotuplo_peca(data["key"],data["piece"])
+            msg = {"action": "get_piece", "deck": self.player.deck}
+            msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+            self.sock.send(pickle.dumps(msgEncrypt))
+            print("DONE")
 
         if action == "login":
             nickname = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))  # input(data["msg"])
@@ -161,7 +170,7 @@ class client():
             print("Sent ", msg)
 
         elif action == "cheat_detected":
-            #input("CHEAT DETECTED -> " + data["cheater"])
+            print("CHEAT DETECTED -> " + data["cheater"])
             msg = {"action": "cheat_end_game"}
             msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
             self.sock.send(pickle.dumps(msgEncrypt))
@@ -197,11 +206,14 @@ class client():
             print("in table -> " + ' '.join(map(str, data["in_table"])) + "\n")
             print("Current player ->", player_name)
             print("next Action ->", data["next_action"])
+            print("hand ->", self.player.hand)
 
 
             if "keys" in data.keys():
                 self.player.decipherHand(data["keys"])
 
+            if data["next_action"] == "de_anonymization_stage":
+                self.player.de_anonymization_hand(data["tiles"])
 
             if self.player.name == data["next_player"]:
 
@@ -284,8 +296,14 @@ class client():
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
+                if data["next_action"] == "de_anonymization_stage":
+                    #self.player.de_anonymization_hand(data["tiles"])
+                    msg = {"action": "de_anonymization_done", "status":"done"}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
+                
                 if data["next_action"] == "play":
-                    print("MAO--->",self.player.hand)
+                    #print("MAO--->",self.player.hand)
                     #input("Enter\n\n\n")
                     # input(Colors.BGreen+"Press ENter \n\n"+Colors.Color_Off)
                     #print("HAND----->",self.player.hand)

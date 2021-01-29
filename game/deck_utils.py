@@ -4,6 +4,8 @@ from security import encodeBase64, SymCipher, decodeBase64, AsymCipher
 import hmac
 import hashlib
 import base64
+import pickle
+
 
 class Player:
     def __init__(self, name,socket,pieces_per_player=None):
@@ -112,13 +114,14 @@ class Player:
             return None
         piece = pieces[0]
         print("ASDASD",piece)
-        if peca == piece:
-            print("TRUEEEEEEE", len(self.hand))
-            self.hand.remove(piece)
-            print("HAND",len(self.hand))
-            newPiece = decodeBase64(SymCipher.decipherKey(piece, key))
-            print("PECA::::",newPiece)
-            self.hand.append(newPiece)
+        #if peca == piece:
+        print("TRUEEEEEEE", len(self.hand))
+        self.hand.remove(piece)
+        print("HAND",len(self.hand))
+        newPiece = decodeBase64(SymCipher.decipherKey(piece, key))
+        print("PECA::::",newPiece)
+        self.hand.append(newPiece)
+        if newPiece:
             return newPiece
         else:
             return None
@@ -158,6 +161,36 @@ class Player:
                 # print("publicas", self.public_keys_list)
 
         return self.public_keys_list
+
+    def de_anonymization_piece(self,tile,tuplo):
+        info = pickle.loads(AsymCipher.decipherKey(tile,tuplo[2]))
+        piece = Piece(info[1],info[2])
+        print(piece.__str__())
+        dig = hmac.new(bytes(info[0], "utf-8"), msg=encodeBase64(piece), digestmod=hashlib.sha256).digest()
+        res = base64.b64encode(dig).decode()
+        if res == tuplo[1]:
+            print("TRUEEEEEEEEEEEEEEEEEEEEEEE")
+            return piece
+        return None
+
+    def de_anonymization_hand(self,tiles):
+        new_hand = []
+        for p in self.hand:
+            piece = self.de_anonymization_piece(tiles[p[0]],p)
+            if piece is not None:
+                new_hand.append(piece)
+
+        self.hand = new_hand
+
+    def traduçãotuplo_peca(self,key, piece): #de_anonymization_piece sem as infos estarem encriptadas
+        dig = hmac.new(bytes(key, "utf-8"), msg=encodeBase64(piece), digestmod=hashlib.sha256).digest()
+        res = base64.b64encode(dig).decode()
+        old = [p for p in self.hand if isinstance(p,tuple)][0]
+        print(old)
+        if res == old[1]:
+            print("TRUEEEEEEEEEEEEEEEEEEEEEEE")
+            self.hand.remove(old)
+            self.hand.append(piece)
 
     def check_Cheating(self):
         if len(self.in_table) == 1:
@@ -234,12 +267,12 @@ class Player:
                         cheat_edge = 0
                         self.playedHand.append(cheat_piece)
                         self.updatePieces(-1)
-                        #input("FIZ BATOTA :P")
+                        print("FIZ BATOTA :P")
                         res = {"action": "play_piece", "piece": cheat_piece,"edge":cheat_edge,"win":self.checkifWin()}
 
                 print("To play -> "+str(piece))
             else:
-                #input("ALGUEM FEZ BATOTA!!")
+                print("ALGUEM FEZ BATOTA!!")
                 res = {"action": "cheat_detected", "cheater": self.previousPlayer}
         return res
 
@@ -266,7 +299,8 @@ class SubPiece:
 class Deck:
 
     deck = []
-    deckNormal = []
+    deckNormal = dict()
+    deckPseudo = []
     hashKeys = dict()
 
     def __init__(self,pieces_per_player=5):
@@ -288,12 +322,13 @@ class Deck:
             dig = hmac.new(bytes(key, "utf-8"), msg=encodeBase64(peca), digestmod=hashlib.sha256).digest()
             res = base64.b64encode(dig).decode()
             index = indexes.pop()
-            self.hashKeys[res] = index
-            #self.deck.append((index, res))
-            self.deck.append(Piece(piece[0], piece[1]))
-            self.deckNormal.append((index, Piece(piece[0], piece[1])))
+            self.hashKeys[index] = key
+            self.deck.append((index, res))
+            #self.deck.append(Piece(piece[0], piece[1]))
+            self.deckPseudo.append((index,res))
+            self.deckNormal[index] = Piece(piece[0], piece[1])
 
-        #print("DECK: ",self.deck)
+        #print("DECK: ",[d for d in self.deck if d[0] == 1])
         #print("PSEUDO: ",self.psedoDeck)
         self.npieces = len(self.deck)
         print("NUMERO: ",self.npieces)

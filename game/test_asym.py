@@ -1,5 +1,8 @@
 from security import *
 import random
+from cryptography.hazmat.primitives import serialization
+from deck_utils import Piece
+
 
 # fase 6
 # peças do jogador -> lista de tuplos (index, P(i))
@@ -34,9 +37,11 @@ def do():
             # add chave publica à lista
             l_pubs[index_lista] = asym.get_public_key()
             print("publicas", l_pubs)
-            print("de enc - publicas", decodeBase64(encodeBase64(l_pubs)))
-            print("enc - publicas", encodeBase64(l_pubs))
 
+def reverse():
+    for p in l_pubs:
+        if p is not None:
+            print(serialization.load_pem_public_key(p,default_backend()))
 
 # retorna index do tuple e da peca
 def find_piece_without_key():
@@ -66,18 +71,22 @@ def check2():
 def main():
     while check2() and check():
         do()
+    reverse()
 
 
 main()
+p = Piece(5,5)
 
-# plaintext = "oi seguranca, domino seguro"
-# print(plaintext)
-#
-# asym = AsymCipher(1024)
-#
-# ciphertext = asym.cipher(bytes(plaintext, "utf-8"))
-# print("cipher: ", ciphertext)
-#
-# plaintext = asym.decipher(ciphertext)
-# print("plain: ", plaintext)
+plaintext = ("oi seguranca, domino seguro",p.values[0].value,p.values[1].value)
+print(plaintext)
+
+asym = AsymCipher(1024)
+key = asym.get_public_key()
+
+
+ciphertext = asym.cipher(pickle.dumps(plaintext),serialization.load_pem_public_key(key,default_backend()))
+print("cipher: ", ciphertext)
+
+plaintext = asym.decipher(ciphertext)
+print("plain: ", pickle.loads(plaintext))
 

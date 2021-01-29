@@ -1,5 +1,5 @@
 from deck_utils import Deck,Player
-from security import decodeBase64, SymCipher
+from security import *
 
 
 class Game:
@@ -100,3 +100,15 @@ class Game:
         if count == 28 - self.nplayers * self.players[0].pieces_per_player:
             return True
         return False
+
+    def reveal_pieces(self):
+        to_send = [None]*28
+        for i in range(len(self.public_keys_list)):
+            if self.public_keys_list[i] is not None:
+                msg = pickle.dumps((self.deck.hashKeys[i], self.deck.deckNormal[i].values[0].value,self.deck.deckNormal[i].values[1].value))
+                to_send[i] = AsymCipher.cipherKey(msg,
+                                       serialization.load_pem_public_key(self.public_keys_list[i],default_backend()))
+        return to_send
+
+    def reveal_piece(self,tuplo):
+        return self.deck.hashKeys[tuplo[0]], self.deck.deckNormal[tuplo[0]]

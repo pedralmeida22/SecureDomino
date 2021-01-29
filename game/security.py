@@ -101,3 +101,11 @@ class AsymCipher:  # rsa
 
     def decipher(self, ciphertext):
         return self.get_private_key().decrypt(ciphertext, pd.OAEP(pd.MGF1(hashes.SHA256()), hashes.SHA256(), None))
+
+    @staticmethod
+    def cipherKey(msg, key):
+        return key.encrypt(msg, pd.OAEP(pd.MGF1(hashes.SHA256()), hashes.SHA256(), None))
+
+    @staticmethod
+    def decipherKey(ciphertext,key):
+        return key.decrypt(ciphertext, pd.OAEP(pd.MGF1(hashes.SHA256()), hashes.SHA256(), None))

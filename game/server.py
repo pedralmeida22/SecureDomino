@@ -260,6 +260,14 @@ class TableManager:
                     self.playerIndexRevealKey -= 1
                     return None
 
+                elif action == "tuploToPiece":
+                    if "key" in data.keys():  # o primeiro a encriptar seja a pedir peça in game
+                        piece = self.game.decipherPiece(data["piece"], data["key"])
+                    print(data["tuplo"])
+                    key, peca = self.game.reveal_piece(data["tuplo"])
+                    msg = {"action":"tuploToPiece", "key":key, "piece":peca, "old_piece":data["tuplo"]}
+                    self.send_to_player(msg,sock)
+                    return None
 
                 elif action == "get_piece":
 
@@ -272,8 +280,7 @@ class TableManager:
                     print("GETPIECEDECK--->", len(self.game.deck.deck))
 
                     msg = {"action": "rcv_game_propreties"}
-                    if "key" in data.keys():                            #o primeiro a encriptar seja a pedir peça in game
-                        piece = self.game.decipherPiece(data["piece"], data["key"])
+                    
                     if not self.game.started:
                         print("player pieces ", player.num_pieces)
                         print("ALL-> ", self.game.allPlayersWithPieces())
@@ -301,8 +308,8 @@ class TableManager:
 
                     msg = {"action": "rcv_game_propreties", "keys": keys, "completeDeck": self.game.completeDeck}
                     if self.game.allSendKeys:
-                        #self.game.next_action = "prep_stage"
-                        self.game.next_action = "play"
+                        self.game.next_action = "prep_stage"
+                        #self.game.next_action = "play"
                         msg.update({'public_keys': self.game.public_keys_list})
 
                     msg.update(self.game.toJson())
@@ -312,10 +319,19 @@ class TableManager:
                     self.game.public_keys_list = data["public_keys"]
                     self.game.nextPlayer()
 
-                    if self.game.check_added_to_public_list():
-                        self.game.next_action = "play"
-                    # input("enter")
                     msg = {"action": "rcv_game_propreties", "public_keys": self.game.public_keys_list}
+                    if self.game.check_added_to_public_list():
+                        pieces = self.game.reveal_pieces()
+                        self.game.next_action = "de_anonymization_stage"#"play"
+                        msg.update({"tiles":pieces})
+
+                    msg.update(self.game.toJson())
+                    self.send_all(msg, sock)
+
+                elif action == "de_anonymization_done":
+                    self.game.next_action = "play"
+                    self.game.player_index = 0
+                    msg = {"action": "rcv_game_propreties"}
                     msg.update(self.game.toJson())
                     self.send_all(msg, sock)
 
