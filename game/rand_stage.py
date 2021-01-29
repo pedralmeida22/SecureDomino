@@ -1,6 +1,9 @@
 from security import *
 import random
 import string
+
+from game.security import decodeBase64, encodeBase64, SymCipher
+
 deck = [(1, 'p1'), (1, 'p1'), (3, 'p3')]
 test = [1,1,1,1,4,5,5,5,6]
 new_deck = []

@@ -301,7 +301,8 @@ class TableManager:
 
                     msg = {"action": "rcv_game_propreties", "keys": keys, "completeDeck": self.game.completeDeck}
                     if self.game.allSendKeys:
-                        self.game.next_action = "prep_stage"
+                        #self.game.next_action = "prep_stage"
+                        self.game.next_action = "play"
                         msg.update({'public_keys': self.game.public_keys_list})
 
                     msg.update(self.game.toJson())
@@ -366,6 +367,17 @@ class TableManager:
                     self.send_all(msg, sock)
                     msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                     return pickle.dumps(msgEncrypt)
+                #someone cheated
+                elif action == "cheat_detected":
+                    input("servidor cheat detected")
+                    self.game.next_action = "cheat_detected"
+                    msg = {"action": "cheat_detected", "cheater": data["cheater"]}
+                    msg.update(self.game.toJson())
+                    self.send_all(msg, sock)
+
+                elif action == "cheat_end_game":
+                    self.signal_handler(None,None)
+
             else:
                 msg = {"action": "wait","msg":Colors.BRed+"Not Your Turn"+Colors.Color_Off}
 

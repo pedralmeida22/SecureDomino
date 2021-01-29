@@ -160,6 +160,12 @@ class client():
             self.sock.send(pickle.dumps(msgEncrypt))
             print("Sent ", msg)
 
+        elif action == "cheat_detected":
+            #input("CHEAT DETECTED -> " + data["cheater"])
+            msg = {"action": "cheat_end_game"}
+            msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+            self.sock.send(pickle.dumps(msgEncrypt))
+
         elif action == "rcv_game_propreties":
             self.player.nplayers = data["nplayers"]
             self.player.npieces = data["npieces"]
@@ -195,6 +201,7 @@ class client():
 
             if "keys" in data.keys():
                 self.player.decipherHand(data["keys"])
+
 
             if self.player.name == data["next_player"]:
 
@@ -285,6 +292,12 @@ class client():
                     msg = self.player.play()
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
+
+
+
+            #caso nao seja a vez guarda o nome do jogador
+            else:
+                self.player.previousPlayer = data["next_player"]
 
         elif action == "end_game":
             winner = data["winner"]

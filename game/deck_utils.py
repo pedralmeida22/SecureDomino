@@ -23,6 +23,7 @@ class Player:
         self.pickingPiece = False
         self.public_keys_list = [None] * 28
         self.nplayers = None
+        self.previousPlayer = None
 
     def __str__(self):
         return str(self.toJson())
@@ -158,6 +159,18 @@ class Player:
 
         return self.public_keys_list
 
+    def check_Cheating(self):
+        if len(self.in_table) == 1:
+            return False
+        p0_e1 = self.in_table[0].values[1].value
+        p1_e0 = self.in_table[1].values[0].value
+        pU_e0 = self.in_table[len(self.in_table)-1].values[0].value
+        pP_e1 = self.in_table[len(self.in_table)-2].values[1].value
+        if p0_e1==p1_e0 and pU_e0==pP_e1:
+            return False
+        return True
+
+
     def play(self):
         res = {}
         if self.in_table == []:
@@ -167,51 +180,67 @@ class Player:
             self.playedHand.append(piece)
             res = {"action": "play_piece","piece":piece,"edge":0,"win":False}
         else:
-            edges = self.in_table[0].values[0].value, self.in_table[len(self.in_table) - 1].values[1].value
-            print(str(edges[0])+" "+str(edges[1]))
-            max = 0
-            index = 0
-            edge = None
-            flip = False
-            #get if possible the best piece to play and the correspondent assigned edge
-            for i, piece in enumerate(self.hand):
-                aux = int(piece.values[0].value) + int(piece.values[1].value)
-                if aux > max:
-                    if int(piece.values[0].value) == int(edges[0]):
-                            max = aux
-                            index = i
-                            flip = True
-                            edge = 0
-                    elif int(piece.values[1].value) == int(edges[0]):
-                            max = aux
-                            index = i
-                            flip = False
-                            edge = 0
-                    elif int(piece.values[0].value) == int(edges[1]):
-                            max = aux
-                            index = i
-                            flip = False
-                            edge = 1
-                    elif int(piece.values[1].value) == int(edges[1]):
-                            max = aux
-                            index = i
-                            flip = True
-                            edge = 1
-            #if there is a piece to play, remove the piece from the hand and check if the orientation is the correct
-            if edge is not None:
-                piece = self.hand.pop(index)
-                self.playedHand.append(piece)
-                if flip:
-                    piece.flip()
-                self.updatePieces(-1)
-                res = {"action": "play_piece", "piece": piece,"edge":edge,"win":self.checkifWin()}
-            # if there is no piece to play try to pick a piece, if there is no piece to pick pass
-            else:
-                if len(self.deck)>0:
-                    res = self.pickPiece()
+            if not self.check_Cheating():
+                edges = self.in_table[0].values[0].value, self.in_table[len(self.in_table) - 1].values[1].value
+                print(str(edges[0])+" "+str(edges[1]))
+                max = 0
+                index = 0
+                edge = None
+                flip = False
+                #get if possible the best piece to play and the correspondent assigned edge
+                for i, piece in enumerate(self.hand):
+                    aux = int(piece.values[0].value) + int(piece.values[1].value)
+                    if aux > max:
+                        if int(piece.values[0].value) == int(edges[0]):
+                                max = aux
+                                index = i
+                                flip = True
+                                edge = 0
+                        elif int(piece.values[1].value) == int(edges[0]):
+                                max = aux
+                                index = i
+                                flip = False
+                                edge = 0
+                        elif int(piece.values[0].value) == int(edges[1]):
+                                max = aux
+                                index = i
+                                flip = False
+                                edge = 1
+                        elif int(piece.values[1].value) == int(edges[1]):
+                                max = aux
+                                index = i
+                                flip = True
+                                edge = 1
+                #if there is a piece to play, remove the piece from the hand and check if the orientation is the correct
+                if edge is not None:
+                    piece = self.hand.pop(index)
+                    self.playedHand.append(piece)
+                    if flip:
+                        piece.flip()
+                    self.updatePieces(-1)
+                    res = {"action": "play_piece", "piece": piece,"edge":edge,"win":self.checkifWin()}
+                # if there is no piece to play try to pick a piece, if there is no piece to pick pass
                 else:
-                    res = {"action": "pass_play", "piece": None, "edge": edge,"win":self.checkifWin()}
-            print("To play -> "+str(piece))
+                    input("VOU BUSCAR")
+                    r = random.choices(['pick_piece', 'cheat'], weights=[5, 1], k=1)
+                    if r == ['pick_piece']:
+                        if len(self.deck)>0:
+                            res = self.pickPiece()
+                        else:
+                            res = {"action": "pass_play", "piece": None, "edge": edge,"win":self.checkifWin()}
+                    else:
+
+                        cheat_piece = self.hand.pop()
+                        cheat_edge = 0
+                        self.playedHand.append(cheat_piece)
+                        self.updatePieces(-1)
+                        #input("FIZ BATOTA :P")
+                        res = {"action": "play_piece", "piece": cheat_piece,"edge":cheat_edge,"win":self.checkifWin()}
+
+                print("To play -> "+str(piece))
+            else:
+                #input("ALGUEM FEZ BATOTA!!")
+                res = {"action": "cheat_detected", "cheater": self.previousPlayer}
         return res
 
 class Piece:
@@ -260,8 +289,8 @@ class Deck:
             res = base64.b64encode(dig).decode()
             index = indexes.pop()
             self.hashKeys[res] = index
-            self.deck.append((index, res))
-            # self.deck.append(Piece(piece[0], piece[1]))
+            #self.deck.append((index, res))
+            self.deck.append(Piece(piece[0], piece[1]))
             self.deckNormal.append((index, Piece(piece[0], piece[1])))
 
         #print("DECK: ",self.deck)
