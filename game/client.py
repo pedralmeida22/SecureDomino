@@ -49,6 +49,8 @@ class client():
             key = data["key"]
             print("KEYTOPIECE", data["piece"])
             piece = self.player.decipherPiece(key, data["piece"])
+            if piece in self.player.keyMapDeck.keys():
+                piece = self.player.decipherPiece(self.player.keyMapDeck[piece], piece,True)
             if isinstance(piece, tuple):
                 self.player.pickingPiece = False
                 msg = {"action": "tuploToPiece", "deck": self.player.deck, "tuplo": piece}
@@ -102,16 +104,17 @@ class client():
         elif action == "new_player":
             print(data["msg"])
             nome = data["msg"].split(" ")[2]
-            # diffieHellman
-            privateNumber = random.randint(1, 16)
-            keyToSend = diffieHellman(self.sharedBase, privateNumber)
+            if nome != self.player.name:
+                # diffieHellman
+                privateNumber = random.randint(1, 16)
+                keyToSend = diffieHellman(self.sharedBase, privateNumber)
 
-            self.dh_keys[nome] = [privateNumber]
+                self.dh_keys[nome] = [privateNumber]
 
-            msg = {"action": "TalkToPlayer", "actionPlayer": "openSession", "msg": "Hello", "key": keyToSend,
-                   "from": self.player.name, "to": nome}
-            msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
-            self.sock.send(pickle.dumps(msgEncrypt))
+                msg = {"action": "TalkToPlayer", "actionPlayer": "openSession", "msg": "Hello", "key": keyToSend,
+                       "from": self.player.name, "to": nome}
+                msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                self.sock.send(pickle.dumps(msgEncrypt))
             print("There are " + str(data["nplayers"]) + "\\" + str(data["game_players"]))
 
         elif action == "waiting_for_host":
@@ -161,6 +164,47 @@ class client():
 
             if actionPlayer == "SessionEstabelicida":
                 print("Sessao Estabecida com ", player)
+
+            if actionPlayer == "get_piece":
+                self.player.deck = data["deck"]
+                #print(self.dh_keys)
+                #input("TESTE")
+
+                if len(data["deck"]) == (28-self.player.pieces_per_player * self.player.nplayers): #todas já apanharam as pecas
+                    print("ACABOU")
+                    msg = {"action": "selectionStage_end", "deck": self.player.deck}
+                else:
+                    if not self.player.ready_to_play:
+                        self.player.get_piece()
+                    toPlayer = random.choice([x for x in self.dh_keys if x != "server"])
+                    print("TOPLAYER", toPlayer)
+                    msgToPlayer = {"actionPlayer": "get_piece", "deck": self.player.deck}
+                    msgToPlayerEncrypt = self.dh_keys[toPlayer][2].cipher(encodeBase64(msgToPlayer))
+                    msg = {"action": "TalkToPlayer", "msg": msgToPlayerEncrypt, "from": self.player.name, "to":toPlayer}
+                msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                self.sock.send(pickle.dumps(msgEncrypt))
+
+
+            if actionPlayer == "prep_stage":
+                print("prep")
+                self.player.public_keys_list = data["public_keys"]
+
+                if self.player.check_added_to_public_list():
+                    msg = {"action": "prep_stage_end", "public_keys": self.player.public_keys_list}
+
+                else:
+                    if self.player.check_added_piece():
+                        print("checks passed")
+                        public_keys_list = self.player.preparation()
+
+                    toPlayer = random.choice([x for x in self.dh_keys if x != "server"])
+                    print("TOPLAYER", toPlayer)
+                    msgToPlayer = {"actionPlayer": "prep_stage", "public_keys": self.player.public_keys_list}
+                    msgToPlayerEncrypt = self.dh_keys[toPlayer][2].cipher(encodeBase64(msgToPlayer))
+                    msg = {"action": "TalkToPlayer", "msg": msgToPlayerEncrypt, "from": self.player.name, "to": toPlayer}
+                msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                self.sock.send(pickle.dumps(msgEncrypt))
+
 
 
         elif action == "host_start_game":
@@ -214,45 +258,18 @@ class client():
 
                 if data["next_action"] == "get_piece":
                     print("AHSIDAPBÇDASKJD\n\n\n")
+                    #print(self.dh_keys)
+                    #input("TESTE")
+
                     if not self.player.ready_to_play:
 
-                        # r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
-                        r = random.choices(['pickup', 'backoff'], weights=[5, 1], k=1)
-                        print(r)
-                        # input("enter:")
-                        # pickup
-                        if r == ['pickup']:
-                            print("pickup\n\n\n")
-                            # random.shuffle(self.player.deck)
-                            piece = self.player.deck.pop()
-                            print("PLAYERPICK-->", len(self.player.deck))
-                            self.player.insertInHand(piece)
+                        self.player.get_piece()
 
-                        # "back off"
-                        else:
-                            r2 = random.choices(['switch', 'backoff'], weights=[1, 1], k=1)
-                            print(r2)
-                            # input("enter:")
-                            # trocar pecas
-                            if r2 == ['switch']:
-                                print("switch\n\n\n")
-                                # tirar um peça do deck
-                                # random.shuxffle(self.player.deck)
-                                piece = self.player.deck.pop()
-                                self.player.hand.append(piece)
-                                print(self.player.hand)
-                                # devolver uma peça ao deck
-                                hand_to_deck = self.player.removeFromHand()
-                                self.player.deck.append(hand_to_deck)
-
-                            else:  # truly back off
-                                print("Nadaaa\n\n\n")
-                        # random.shuffle(self.player.deck)
-                        # piece = self.player.deck.pop()
-                        # self.player.insertInHand(piece)
-                        # input("STOP")
-                    # time.sleep(0.05)
-                    msg = {"action": "get_piece", "deck": self.player.deck}
+                    toPlayer = random.choice([x for x in self.dh_keys if x !="server"])
+                    print("TOPLAYER", toPlayer)
+                    msgToPlayer = {"actionPlayer": "get_piece", "deck": self.player.deck}
+                    msgToPlayerEncrypt = self.dh_keys[toPlayer][2].cipher(encodeBase64(msgToPlayer))
+                    msg = {"action": "TalkToPlayer", "msg": msgToPlayerEncrypt,"from":self.player.name, "to":toPlayer}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
@@ -298,7 +315,12 @@ class client():
                         print("checks passed")
                         public_keys_list = self.player.preparation()
 
-                    msg = {"action": "prep_stage", "public_keys": self.player.public_keys_list}
+                    toPlayer = random.choice([x for x in self.dh_keys if x != "server"])
+                    print("TOPLAYER", toPlayer)
+                    msgToPlayer = {"actionPlayer": "prep_stage", "public_keys": self.player.public_keys_list}
+                    msgToPlayerEncrypt = self.dh_keys[toPlayer][2].cipher(encodeBase64(msgToPlayer))
+                    msg = {"action": "TalkToPlayer", "msg": msgToPlayerEncrypt, "from": self.player.name,
+                           "to": toPlayer}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
 

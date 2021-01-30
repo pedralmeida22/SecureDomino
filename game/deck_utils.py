@@ -51,6 +51,40 @@ class Player:
     def canPick(self):
         return self.num_pieces<self.pieces_per_player
 
+    def get_piece(self):
+        # r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
+        r = random.choices(['pickup', 'backoff'], weights=[5, 1], k=1)
+        print(r)
+        # input("enter:")
+        # pickup
+        if r == ['pickup']:
+            print("pickup\n\n\n")
+            # random.shuffle(self.player.deck)
+            piece = self.deck.pop()
+            print("PLAYERPICK-->", len(self.deck))
+            self.insertInHand(piece)
+
+        # "back off"
+        else:
+            r2 = random.choices(['switch', 'backoff'], weights=[1, 1], k=1)
+            print(r2)
+            # input("enter:")
+            # trocar pecas
+            if r2 == ['switch']:
+                print("switch\n\n\n")
+                # tirar um peça do deck
+                # random.shuxffle(self.player.deck)
+                piece = self.deck.pop()
+                self.hand.append(piece)
+                print(self.hand)
+                # devolver uma peça ao deck
+                hand_to_deck = self.removeFromHand()
+                self.deck.append(hand_to_deck)
+
+            else:  # truly back off
+                print("Nadaaa\n\n\n")
+
+    
     def insertInHand(self,piece):
         self.num_pieces += 1
         self.hand.append(piece)
@@ -113,7 +147,7 @@ class Player:
         print("PECA::::", newPiece)
         return newPiece
 
-    def decipherPiece(self, key, peca):
+    def decipherPiece(self, key, peca, check_tuplo=False):
         pieces = [p for p in self.hand if not isinstance(p,Piece)]
         if len(pieces) == 0:
             return None
@@ -121,10 +155,14 @@ class Player:
         print("ASDASD",piece)
         #if peca == piece:
         print("TRUEEEEEEE", len(self.hand))
-        self.hand.remove(piece)
+        
         print("HAND",len(self.hand))
         newPiece = decodeBase64(SymCipher.decipherKey(piece, key))
         print("PECA::::",newPiece)
+        if check_tuplo:
+            if not isinstance(newPiece,tuple):
+                return peca
+        self.hand.remove(piece)
         self.hand.append(newPiece)
         if newPiece:
             return newPiece
@@ -141,6 +179,19 @@ class Player:
             print("hand: ", self.hand)
             if len(i) == 2:
                 return True
+        return False
+
+    def check_added_to_public_list(self):
+        count = 0
+        print("pu list: ", self.public_keys_list)
+        for i in self.public_keys_list:
+            if i is None:
+                count += 1
+        print("count: ", count)
+        print("n pecas: ", self.pieces_per_player)
+        # n nones expected = total de peças - num_players * num_pecas_player
+        if count == 28 - self.nplayers * self.pieces_per_player:
+            return True
         return False
 
     def preparation(self):

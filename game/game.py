@@ -30,6 +30,11 @@ class Game:
     def allPlayersWithPieces(self):
         return all([p.num_pieces == p.pieces_per_player for p in self.players])
 
+    
+    def playerWithallPieces(self):
+        for p in self.players:
+            p.num_pieces = p.pieces_per_player
+    
     def currentPlayer(self):
         return self.players[self.player_index]
 

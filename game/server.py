@@ -101,7 +101,7 @@ class TableManager:
                 self.message_queue[sock].put(pickle.dumps(msgEncrypt))
                 if sock not in self.outputs:
                     self.outputs.append(sock)
-        time.sleep(0.1)  # give server time to send all messages
+        time.sleep(0.2)  # give server time to send all messages
 
     def send_host(self, msg):
         self.message_queue[self.game.host_sock].put(pickle.dumps(msg))
@@ -130,6 +130,7 @@ class TableManager:
                 playerTo = data["to"]
                 print("Sending message to ", playerTo)
                 print(self.players[playerTo])
+                time.sleep(0.01)
                 self.send_to_player(data, self.players[playerTo])
                 return None
 
@@ -229,7 +230,7 @@ class TableManager:
                 if not isinstance(piece, Piece):
                     msg1 = {"action": "whatIsThisPiece", "piece": piece}
                     print("MSGSEND:::::", msg1)
-                    time.sleep(0.1)  # give server time to send all messages
+                    time.sleep(0.2)  # give server time to send all messages
                     self.send_to_player(msg1, self.game.players[self.playerIndexRevealKey].socket)
                 self.playerIndexRevealKey -= 1
 
@@ -241,6 +242,52 @@ class TableManager:
             player = self.game.currentPlayer()
             # check if the request is from a valid player
 
+            if action == "selectionStage_end": # tive que passar para fora do if do currentPlayer, pq pode ser qualquer um a mandar
+                self.game.deck.deck = data["deck"]
+                print("GETPIECEDECK--->", len(self.game.deck.deck))
+                input("TESTEAAAA")
+
+                msg = {"action": "rcv_game_propreties"}
+
+                #if not self.game.started:
+                    # if self.game.allPlayersWithPieces():
+                    #     for a in range (0,self.nplayers):
+                    #         p=self.game.nextPlayer()
+                    #         print("DEBUG DARIO: ".join(map(str, self.player.hand)))
+                self.game.nextPlayer()
+                #if len(data["deck"]) == (28 - self.game.nplayers * player.pieces_per_player):
+                self.game.playerWithallPieces()
+                #self.game.started = True
+                self.game.next_action = "bitCommit"
+                #msg.update({"completeDeck": self.game.completeDeck})
+                #self.game.player_index = self.nplayers - 1
+
+                    # if self.game.allPlayersWithPieces():
+                    #     self.game.started = True
+                    #     self.game.next_action = "revelationStage"#"play"
+                    #     msg.update({"completeDeck": self.game.completeDeck})
+                    #     self.game.player_index = self.nplayers-1
+
+                msg.update(self.game.toJson())
+                self.send_all(msg, sock)
+                msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                return pickle.dumps(msgEncrypt)
+
+            if action == "prep_stage_end":
+                self.game.public_keys_list = data["public_keys"]
+                self.game.nextPlayer()
+                input("SERAAAA")
+
+                msg = {"action": "rcv_game_propreties", "public_keys": self.game.public_keys_list}
+                #if self.game.check_added_to_public_list():
+                pieces = self.game.reveal_pieces()
+                self.game.next_action = "de_anonymization_stage"  # "play"
+                msg.update({"tiles": pieces})
+
+                msg.update(self.game.toJson())
+                self.send_all(msg, sock)
+                msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
+                return pickle.dumps(msgEncrypt)
 
 
             if sock == player.socket:
@@ -269,46 +316,28 @@ class TableManager:
                     self.playerIndexRevealKey -= 1
                     return None
 
-                elif action == "tuploToPiece":
-                    if "key" in data.keys():  # o primeiro a encriptar seja a pedir peça in game
-                        piece = self.game.decipherPiece(data["piece"], data["key"])
-                    print(data["tuplo"])
-                    key, peca = self.game.reveal_piece(data["tuplo"])
-                    msg = {"action": "tuploToPiece", "key": key, "piece": peca, "old_piece": data["tuplo"]}
-                    self.send_to_player(msg, sock)
-                    return None
+                elif action == "get_piece":  # tive que passar para fora do if do currentPlayer, pq pode ser qualquer um a mandar
 
-                elif action == "get_piece":
-
-                    if len(self.game.deck.deck) > len(data["deck"]):  # player pick piece and not pass or swap
-                        player.updatePieces(1)
-
+                    #player.updatePieces(1)
                     self.playerGetPiece = None
                     self.playerIndexRevealKey = self.nplayers - 1
                     self.game.deck.deck = data["deck"]
                     print("GETPIECEDECK--->", len(self.game.deck.deck))
 
                     msg = {"action": "rcv_game_propreties"}
-
-                    if not self.game.started:
-                        print("player pieces ", player.num_pieces)
-                        print("ALL-> ", self.game.allPlayersWithPieces())
-                        # if self.game.allPlayersWithPieces():
-                        #     for a in range (0,self.nplayers):
-                        #         p=self.game.nextPlayer()
-                        #         print("DEBUG DARIO: ".join(map(str, self.player.hand)))
-
-                        self.game.nextPlayer()
-                        if self.game.allPlayersWithPieces():
-                            self.game.next_action = "bitCommit"
-
-                            # self.game.started = True
-                            # self.game.next_action = "revelationStage"#"play"
-                            # msg.update({"completeDeck": self.game.completeDeck})
-                            # self.game.player_index = self.nplayers-1
-
                     msg.update(self.game.toJson())
                     self.send_all(msg, sock)
+
+
+                elif action == "tuploToPiece":
+                    if "key" in data.keys():  # o primeiro a encriptar seja a pedir peça in game
+                        piece = self.game.decipherPiece(data["piece"], data["key"])
+                    print(data["tuplo"])
+                    key, peca = self.game.reveal_piece(data["tuplo"])
+                    msg = {"action":"tuploToPiece", "key":key, "piece":peca, "old_piece":data["tuplo"]}
+                    self.send_to_player(msg,sock)
+                    return None
+
                 elif action == "revelationStage":
                     keys = data["keys"]
 
@@ -396,10 +425,10 @@ class TableManager:
                     self.game.nextPlayer()
 
                     msg = {"action": "rcv_game_propreties", "public_keys": self.game.public_keys_list}
-                    if self.game.check_added_to_public_list():
-                        pieces = self.game.reveal_pieces()
-                        self.game.next_action = "de_anonymization_stage"  # "play"
-                        msg.update({"tiles": pieces})
+                    # if self.game.check_added_to_public_list():
+                    #     pieces = self.game.reveal_pieces()
+                    #     self.game.next_action = "de_anonymization_stage"#"play"
+                    #     msg.update({"tiles":pieces})
 
                     msg.update(self.game.toJson())
                     self.send_all(msg, sock)
