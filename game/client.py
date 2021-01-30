@@ -238,6 +238,7 @@ class client():
             print("Current player ->", player_name)
             print("next Action ->", data["next_action"])
             print("hand ->", self.player.hand)
+            print("player score -> ", self.player.score)
 
             if "keys" in data.keys():
                 self.player.decipherHand(data["keys"])

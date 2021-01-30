@@ -318,6 +318,8 @@ class Player:
                     if flip:
                         piece.flip()
                     self.updatePieces(-1)
+                    #5 pontos por peca jogada
+                    self.score+=5
                     res = {"action": "play_piece", "piece": piece,"edge":edge,"win":self.checkifWin()}
                 # if there is no piece to play try to pick a piece, if there is no piece to pick pass
                 else:
@@ -334,6 +336,7 @@ class Player:
                         cheat_edge = 0
                         self.playedHand.append(cheat_piece)
                         self.updatePieces(-1)
+                        self.score += 5
                         print("FIZ BATOTA :P")
                         res = {"action": "play_piece", "piece": cheat_piece,"edge":cheat_edge,"win":self.checkifWin()}
 
