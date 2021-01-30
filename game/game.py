@@ -19,7 +19,10 @@ class Game:
         self.all_ready_to_play = False
         self.allEncriptDeck = False
         self.allSendKeys = False
+        self.commits = []
 
+    def commitsDone(self):
+        return len(self.commits) == self.nplayers
 
     def checkDeadLock(self):
         return all([ player.nopiece for player in self.players ])

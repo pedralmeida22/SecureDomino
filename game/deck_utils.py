@@ -108,6 +108,11 @@ class Player:
         if len(tmp) > 0:
             self.hand = tmp
 
+    def decipherToTuple(self, key, peca):
+        newPiece = decodeBase64(SymCipher.decipherKey(peca, key))
+        print("PECA::::", newPiece)
+        return newPiece
+
     def decipherPiece(self, key, peca):
         pieces = [p for p in self.hand if not isinstance(p,Piece)]
         if len(pieces) == 0:

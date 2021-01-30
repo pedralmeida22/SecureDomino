@@ -291,10 +291,12 @@ class TableManager:
 
                         self.game.nextPlayer()
                         if self.game.allPlayersWithPieces():
-                            self.game.started = True
-                            self.game.next_action = "revelationStage"#"play"
-                            msg.update({"completeDeck": self.game.completeDeck})
-                            self.game.player_index = self.nplayers-1
+                            self.game.next_action = "bitCommit"
+
+                            # self.game.started = True
+                            # self.game.next_action = "revelationStage"#"play"
+                            # msg.update({"completeDeck": self.game.completeDeck})
+                            # self.game.player_index = self.nplayers-1
 
                     msg.update(self.game.toJson())
                     self.send_all(msg,sock)
@@ -312,6 +314,34 @@ class TableManager:
                         #self.game.next_action = "play"
                         msg.update({'public_keys': self.game.public_keys_list})
 
+                    msg.update(self.game.toJson())
+                    self.send_all(msg, sock)
+
+                elif action == "bitCommit":
+                    print("TESTE DE BIT COMMIT __________")
+                    self.game.commits.append((self.game.player_index, data["userData"]))
+                    self.game.nextPlayer()
+                    msg = {"action": "rcv_game_propreties"}
+                    self.game.next_action = "bitCommit"
+                    if self.game.commitsDone():
+                        print("COMMITS")
+                        print(self.game.commits)
+                        input("BIT COMMITS FEITOS - ENTER PARA CONTINUAR")
+                        self.game.started = True
+                        self.game.next_action = "revelationStage"  # "play"
+                        msg.update({"completeDeck": self.game.completeDeck})
+                        self.game.player_index = self.nplayers - 1
+                    msg.update(self.game.toJson())
+                    # self.send_to_player(msg,self.game.players[self.game.player_index].socket)
+                    self.send_all(msg, sock)
+
+                elif action == "verifyBC":
+                    r2, tiles = data["userData"]
+                    print("VAI VERIFICAR")
+
+                    # VERIFICAR CADA PLAYED HAND COM CADA BIT COMMIT
+
+                    msg = {"action": "reg_points", "winner": player.name}
                     msg.update(self.game.toJson())
                     self.send_all(msg, sock)
 
