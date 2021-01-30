@@ -9,10 +9,10 @@ import signal
 import Colors
 import time
 import random
-from security import diffieHellman,encodeBase64, decodeBase64
+from security import diffieHellman, encodeBase64, decodeBase64
 from security import SymCipher
+from bitCommit import *
 from cc_utils import check_signature
-
 
 
 # Main socket code from https://docs.python.org/3/howto/sockets.html
@@ -20,25 +20,25 @@ from cc_utils import check_signature
 
 class TableManager:
 
-    def __init__(self, host, port,nplayers=4):
+    def __init__(self, host, port, nplayers=4):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.setblocking(False)  # non-blocking for select
         self.server.bind((host, port))  # binding to localhost on 50000
         self.server.listen()
         self.game = Game(nplayers)  # the game associated to this table manager
-        self.nplayers=nplayers
-        print("Nplayers = ",nplayers)
-        #disconnecting players when CTRL + C is pressed
+        self.nplayers = nplayers
+        print("Nplayers = ", nplayers)
+        # disconnecting players when CTRL + C is pressed
         signal.signal(signal.SIGINT, self.signal_handler)
-        #signal.pause()
+        # signal.pause()
         self.sharedBase = 5
         self.dh_keys = {}
         self.players = {}
-        self.pseudos=dict()
+        self.pseudos = dict()
         self.allEncryptDeck = False
-        self.points=dict()
-        self.playerIndexRevealKey = nplayers-1
+        self.points = dict()
+        self.playerIndexRevealKey = nplayers - 1
         self.playerGetPiece = None
 
         print("Server is On")
@@ -54,7 +54,8 @@ class TableManager:
             for sock in readable:
                 if sock is self.server:  # this is our main socket and we are receiving a new client
                     connection, ip_address = sock.accept()
-                    print(Colors.BRed+"A new client connected -> "+Colors.BGreen+"{}".format(ip_address)+Colors.Color_Off)
+                    print(Colors.BRed + "A new client connected -> " + Colors.BGreen + "{}".format(
+                        ip_address) + Colors.Color_Off)
                     connection.setblocking(False)
                     self.inputs.append(connection)  # add client to our input list
                     self.message_queue[connection] = queue.Queue()
@@ -91,24 +92,23 @@ class TableManager:
 
     def send_all(self, msg, socket=None):
         if socket is None:
-            socket=self.server
+            socket = self.server
 
         for sock in self.inputs:
-            if sock is not self.server and sock is not socket :
+            if sock is not self.server and sock is not socket:
                 msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
-                #print("encruptALL: ", msgEncrypt)
+                # print("encruptALL: ", msgEncrypt)
                 self.message_queue[sock].put(pickle.dumps(msgEncrypt))
                 if sock not in self.outputs:
                     self.outputs.append(sock)
-        time.sleep(0.1) #give server time to send all messages
+        time.sleep(0.1)  # give server time to send all messages
 
-
-    def send_host(self,msg):
+    def send_host(self, msg):
         self.message_queue[self.game.host_sock].put(pickle.dumps(msg))
         if self.game.host_sock not in self.outputs:
             self.outputs.append(self.game.host_sock)
 
-    def send_to_player(self,msg,sock):
+    def send_to_player(self, msg, sock):
         msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
         self.message_queue[sock].put(pickle.dumps(msgEncrypt))
         if sock not in self.outputs:
@@ -117,27 +117,27 @@ class TableManager:
     def handle_action(self, data, sock):
         msg = None
         data = pickle.loads(data)
-        #print("DATA: ", data)
+        # print("DATA: ", data)
 
         if sock in self.dh_keys.keys():
             if len(self.dh_keys[sock]) == 3:
                 data = decodeBase64(self.dh_keys[sock][2].decipher(data))
-        print("MSG-->",data)
+        print("MSG-->", data)
         action = data["action"]
-        print("\n"+action)
+        print("\n" + action)
         if data:
             if action == "TalkToPlayer":
                 playerTo = data["to"]
                 print("Sending message to ", playerTo)
                 print(self.players[playerTo])
-                self.send_to_player(data,self.players[playerTo])
+                self.send_to_player(data, self.players[playerTo])
                 return None
 
             if action == "hello":
                 privateNumber = random.randint(1, 16)
-                keyToSend = diffieHellman(self.sharedBase,privateNumber)
+                keyToSend = diffieHellman(self.sharedBase, privateNumber)
                 self.dh_keys[sock] = [privateNumber]
-                msg = {"action": "login", "msg": "Welcome to the server, what will be your name?", "key":keyToSend}
+                msg = {"action": "login", "msg": "Welcome to the server, what will be your name?", "key": keyToSend}
                 return pickle.dumps(msg)
             # TODO login mechanic is flawed, only nickname
             if action == "req_login":
@@ -147,14 +147,15 @@ class TableManager:
                 print("SharedKey: ", sharedKey)
                 self.dh_keys[sock].append(sharedKey)
                 self.dh_keys[sock].append(SymCipher(str(sharedKey)))
-                
+
                 if not self.game.hasHost():  # There is no game for this tabla manager
-                    self.game.addPlayer(data["msg"],sock,self.game.deck.pieces_per_player) # Adding host
+                    self.game.addPlayer(data["msg"], sock, self.game.deck.pieces_per_player)  # Adding host
                     self.players[data["msg"]] = sock
-                    msg = {"action": "you_host", "msg": Colors.BRed+"You are the host of the game"+Colors.Color_Off}
+                    msg = {"action": "you_host", "msg": Colors.BRed + "You are the host of the game" + Colors.Color_Off}
                     print("msg: ", msg)
                     encrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
-                    print("User "+Colors.BBlue+"{}".format(data["msg"])+Colors.Color_Off+" has created a game, he is the first to join")
+                    print("User " + Colors.BBlue + "{}".format(
+                        data["msg"]) + Colors.Color_Off + " has created a game, he is the first to join")
                     return pickle.dumps(encrypt)
                 else:
                     if not self.game.hasPlayer(data["msg"]):
@@ -163,19 +164,21 @@ class TableManager:
                             print("User {} tried to join a full game".format(data["msg"]))
                             return pickle.dumps(msg)
                         else:
-                            self.game.addPlayer(data["msg"], sock,self.game.deck.pieces_per_player)  # Adding player
-                            msg = {"action": "new_player", "msg": "New Player "+data["msg"]+" registered in game",
+                            self.game.addPlayer(data["msg"], sock, self.game.deck.pieces_per_player)  # Adding player
+                            msg = {"action": "new_player", "msg": "New Player " + data["msg"] + " registered in game",
                                    "nplayers": self.game.nplayers, "game_players": self.game.max_players}
-                            print("User "+Colors.BBlue+"{}".format(data["msg"])+Colors.Color_Off+" joined the game")
+                            print("User " + Colors.BBlue + "{}".format(
+                                data["msg"]) + Colors.Color_Off + " joined the game")
                             self.players[data["msg"]] = sock
-                            #send info to all players
+                            # send info to all players
                             self.send_all(msg)
 
-                            #check if table is full
+                            # check if table is full
                             if self.game.isFull():
-                                print(Colors.BIPurple+"The game is Full"+Colors.Color_Off)
-                                msg = {"action": "waiting_for_host", "msg": Colors.BRed+"Waiting for host to start the game"+Colors.Color_Off}
-                                self.send_all(msg,sock)
+                                print(Colors.BIPurple + "The game is Full" + Colors.Color_Off)
+                                msg = {"action": "waiting_for_host",
+                                       "msg": Colors.BRed + "Waiting for host to start the game" + Colors.Color_Off}
+                                self.send_all(msg, sock)
                             msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                             return pickle.dumps(msgEncrypt)
                     else:
@@ -185,14 +188,16 @@ class TableManager:
                         return pickle.dumps(msgEncrypt)
 
             if action == "start_game":
-                msg = {"action": "host_start_game", "msg": Colors.BYellow+"The Host started the game"+Colors.Color_Off}
-                self.send_all(msg,sock)
+                msg = {"action": "host_start_game",
+                       "msg": Colors.BYellow + "The Host started the game" + Colors.Color_Off}
+                self.send_all(msg, sock)
                 msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                 return pickle.dumps(msgEncrypt)
 
             if action == "ready_to_play":
-                msg = {"action": "host_start_game", "msg": Colors.BYellow+"The Host started the game"+Colors.Color_Off}
-                self.send_all(msg,sock)
+                msg = {"action": "host_start_game",
+                       "msg": Colors.BYellow + "The Host started the game" + Colors.Color_Off}
+                self.send_all(msg, sock)
                 msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                 return pickle.dumps(msgEncrypt)
 
@@ -203,48 +208,52 @@ class TableManager:
                 return pickle.dumps(msgEncrypt)
 
             if action == "reg_points":
-                self.points[data["msg"]]=10
+                self.points[data["msg"]] = 10
                 print("GAJO:")
-                s=SymCipher("cc")
+                s = SymCipher("cc")
                 print(decodeBase64(s.decipher(data["msg"])))
                 print(self.points[data["msg"]])
 
             if action == "KeyToPiece":
-                print("DECIPHER",self.playerIndexRevealKey)
-                piece = self.game.decipherPiece(data["piece"],data["key"])
+                print("DECIPHER", self.playerIndexRevealKey)
+                piece = self.game.decipherPiece(data["piece"], data["key"])
                 # if self.playerGetPiece == self.game.players[self.playerIndexRevealKey].socket:
                 #     msg = {"action": "KeyToPieceAndWhatPiece", "key": data["key"], "pieceTeste": data["piece"],"piece": piece}
                 #     print("MSGSEND:::::",msg)
                 #     self.send_to_player(msg,self.playerGetPiece)
                 # else:
                 if "sendKey" not in data.keys():
-                    msg = {"action":"KeyToPiecePlayer", "key": data["key"], "piece": data["piece"]}
-                    print("MSGSEND:::::",msg)
-                    self.send_to_player(msg,self.playerGetPiece)
+                    msg = {"action": "KeyToPiecePlayer", "key": data["key"], "piece": data["piece"]}
+                    print("MSGSEND:::::", msg)
+                    self.send_to_player(msg, self.playerGetPiece)
                 if not isinstance(piece, Piece):
                     msg1 = {"action": "whatIsThisPiece", "piece": piece}
-                    print("MSGSEND:::::",msg1)
-                    time.sleep(0.1) #give server time to send all messages
-                    self.send_to_player(msg1,self.game.players[self.playerIndexRevealKey].socket)
-                self.playerIndexRevealKey -=1
+                    print("MSGSEND:::::", msg1)
+                    time.sleep(0.1)  # give server time to send all messages
+                    self.send_to_player(msg1, self.game.players[self.playerIndexRevealKey].socket)
+                self.playerIndexRevealKey -= 1
 
                 if self.playerIndexRevealKey < 0:
                     print("DONE DECIPHER")
 
 
+
             player = self.game.currentPlayer()
-            #check if the request is from a valid player
+            # check if the request is from a valid player
+
+
+
             if sock == player.socket:
                 if action == "encryptDeck":
                     self.game.deck.deck = data["deck"]
                     self.game.completeDeck = data["deck"]  # guarda o deck todo, para depois saber os tuplos escolhidos
 
-                    #print("NEW_DECK:::",self.game.deck.deck)
+                    # print("NEW_DECK:::",self.game.deck.deck)
                     self.game.nextPlayer()
                     msg = {"action": "rcv_game_propreties"}
                     if self.game.allEncriptDeck:
-                        self.game.player_index = self.nplayers-1
-                        self.game.next_action =  "get_piece"
+                        self.game.player_index = self.nplayers - 1
+                        self.game.next_action = "get_piece"
 
                     msg = {"action": "rcv_game_propreties"}
                     msg.update(self.game.toJson())
@@ -265,22 +274,22 @@ class TableManager:
                         piece = self.game.decipherPiece(data["piece"], data["key"])
                     print(data["tuplo"])
                     key, peca = self.game.reveal_piece(data["tuplo"])
-                    msg = {"action":"tuploToPiece", "key":key, "piece":peca, "old_piece":data["tuplo"]}
-                    self.send_to_player(msg,sock)
+                    msg = {"action": "tuploToPiece", "key": key, "piece": peca, "old_piece": data["tuplo"]}
+                    self.send_to_player(msg, sock)
                     return None
 
                 elif action == "get_piece":
 
-                    if len(self.game.deck.deck) > len(data["deck"]): #player pick piece and not pass or swap
+                    if len(self.game.deck.deck) > len(data["deck"]):  # player pick piece and not pass or swap
                         player.updatePieces(1)
 
                     self.playerGetPiece = None
                     self.playerIndexRevealKey = self.nplayers - 1
-                    self.game.deck.deck=data["deck"]
+                    self.game.deck.deck = data["deck"]
                     print("GETPIECEDECK--->", len(self.game.deck.deck))
 
                     msg = {"action": "rcv_game_propreties"}
-                    
+
                     if not self.game.started:
                         print("player pieces ", player.num_pieces)
                         print("ALL-> ", self.game.allPlayersWithPieces())
@@ -299,7 +308,7 @@ class TableManager:
                             # self.game.player_index = self.nplayers-1
 
                     msg.update(self.game.toJson())
-                    self.send_all(msg,sock)
+                    self.send_all(msg, sock)
                 elif action == "revelationStage":
                     keys = data["keys"]
 
@@ -311,7 +320,7 @@ class TableManager:
                     msg = {"action": "rcv_game_propreties", "keys": keys, "completeDeck": self.game.completeDeck}
                     if self.game.allSendKeys:
                         self.game.next_action = "prep_stage"
-                        #self.game.next_action = "play"
+                        # self.game.next_action = "play"
                         msg.update({'public_keys': self.game.public_keys_list})
 
                     msg.update(self.game.toJson())
@@ -319,7 +328,7 @@ class TableManager:
 
                 elif action == "bitCommit":
                     print("TESTE DE BIT COMMIT __________")
-                    self.game.commits.append((self.game.player_index, data["userData"]))
+                    self.game.commits[data["userData"][2]]=(data["userData"][0],data["userData"][1])
                     self.game.nextPlayer()
                     msg = {"action": "rcv_game_propreties"}
                     self.game.next_action = "bitCommit"
@@ -335,11 +344,48 @@ class TableManager:
                     # self.send_to_player(msg,self.game.players[self.game.player_index].socket)
                     self.send_all(msg, sock)
 
-                elif action == "verifyBC":
-                    r2, tiles = data["userData"]
+                if action == "verifyBC":
+                    r2 = data["userData"][0]
+                    print("R2 ->")
+                    print(r2)
+
+                    tiles = data["userData"][1]
+                    pseudos=data["userData"][2]
+
                     print("VAI VERIFICAR")
 
-                    # VERIFICAR CADA PLAYED HAND COM CADA BIT COMMIT
+                    tuploInicial = self.game.commits[data["userData"][3]]
+
+                    novoBC = bitCommit(tuploInicial[0], r2, tiles)
+                    novoValor = novoBC.value()
+
+                    if(novoValor == tuploInicial[1]):
+                        input("São IGUAIS")
+                        # VERIFICAR CADA PLAYED HAND COM CADA BIT COMMIT
+                        # for p1 in pseudos:
+                        #     print(self.game.reveal_piece(p1)[1])
+                        #
+                        # for p2 in player.playedHand:
+                        #     print(p2)
+
+                        checks=False
+                        for p in pseudos:
+
+                            peca=self.game.reveal_piece(p)[1]
+
+                            for playeds in player.playedHand:
+                                # print(peca)
+                                # print(playeds)
+                                if player.samePiece(peca, playeds):
+                                   checks=True
+
+                            if not checks:
+                                input("FEZ BATOTA - PECAS NAO CORRESPONDENTES")
+                                break
+
+
+                    else:
+                        input("FEZ BATOTA - BC NAO CORRESPONDENTES")
 
                     msg = {"action": "reg_points", "winner": player.name}
                     msg.update(self.game.toJson())
@@ -352,8 +398,8 @@ class TableManager:
                     msg = {"action": "rcv_game_propreties", "public_keys": self.game.public_keys_list}
                     if self.game.check_added_to_public_list():
                         pieces = self.game.reveal_pieces()
-                        self.game.next_action = "de_anonymization_stage"#"play"
-                        msg.update({"tiles":pieces})
+                        self.game.next_action = "de_anonymization_stage"  # "play"
+                        msg.update({"tiles": pieces})
 
                     msg.update(self.game.toJson())
                     self.send_all(msg, sock)
@@ -366,23 +412,23 @@ class TableManager:
                     self.send_all(msg, sock)
 
                 elif action == "play_piece":
-                    next_p = self.game.nextPlayer()
                     if data["piece"] is not None:
                         player.nopiece = False
                         player.updatePieces(-1)
-                        if data["edge"]==0:
-                            self.game.deck.in_table.insert(0,data["piece"])
+                        player.playedHand.append(data["piece"])
+                        if data["edge"] == 0:
+                            self.game.deck.in_table.insert(0, data["piece"])
                         else:
-                            self.game.deck.in_table.insert(len(self.game.deck.in_table),data["piece"])
+                            self.game.deck.in_table.insert(len(self.game.deck.in_table), data["piece"])
 
-                    print("player pieces ",player.num_pieces)
-                    print("player "+player.name+" played "+str(data["piece"]))
+                    print("player pieces ", player.num_pieces)
+                    print("player " + player.name + " played " + str(data["piece"]))
                     print("in table -> " + ' '.join(map(str, self.game.deck.in_table)) + "\n")
                     print("deck -> " + ' '.join(map(str, self.game.deck.deck)) + "\n")
                     if data["win"]:
                         if player.checkifWin():
-                            print(Colors.BGreen+" WINNER "+player.name+Colors.Color_Off)
-                            #msg = {"action": "end_game","winner":player.name}
+                            print(Colors.BGreen + " WINNER " + player.name + Colors.Color_Off)
+                            # msg = {"action": "end_game","winner":player.name}
                             # choice=input("Save points? (blank/n")
                             # if choice is "":
                             #     print("Reading card...")
@@ -392,18 +438,21 @@ class TableManager:
 
                             msg = {"action": "end_game", "winner": player.name}
 
+
                     else:
                         msg = {"action": "rcv_game_propreties"}
+                        next_p = self.game.nextPlayer()
+
                     msg.update(self.game.toJson())
-                    self.send_all(msg,sock)
-                #no pieces to pick
+                    self.send_all(msg, sock)
+                # no pieces to pick
                 elif action == "pass_play":
                     self.game.nextPlayer()
-                    #If the player passed the previous move
+                    # If the player passed the previous move
                     if player.nopiece:
                         print("No piece END")
-                        msg = {"action": "end_game", "winner": Colors.BYellow+"TIE"+Colors.Color_Off}
-                    #Update the variable nopiece so that the server can know if the player has passed the previous move
+                        msg = {"action": "end_game", "winner": Colors.BYellow + "TIE" + Colors.Color_Off}
+                    # Update the variable nopiece so that the server can know if the player has passed the previous move
                     else:
                         print("No piece")
                         player.nopiece = True
@@ -413,7 +462,7 @@ class TableManager:
                     self.send_all(msg, sock)
                     msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                     return pickle.dumps(msgEncrypt)
-                #someone cheated
+                # someone cheated
                 elif action == "cheat_detected":
                     input("servidor cheat detected")
                     self.game.next_action = "cheat_detected"
@@ -422,10 +471,10 @@ class TableManager:
                     self.send_all(msg, sock)
 
                 elif action == "cheat_end_game":
-                    self.signal_handler(None,None)
+                    self.signal_handler(None, None)
 
             else:
-                msg = {"action": "wait","msg":Colors.BRed+"Not Your Turn"+Colors.Color_Off}
+                msg = {"action": "wait", "msg": Colors.BRed + "Not Your Turn" + Colors.Color_Off}
 
             if msg is None:
                 return None
@@ -433,10 +482,10 @@ class TableManager:
                 msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                 return pickle.dumps(msgEncrypt)
 
-    #Function to handle CTRL + C Command disconnecting all players
-    def signal_handler(self,sig, frame):
+    # Function to handle CTRL + C Command disconnecting all players
+    def signal_handler(self, sig, frame):
         print('You pressed Ctrl+C!')
-        size = len(self.inputs)-1
+        size = len(self.inputs) - 1
         msg = {"action": "disconnect", "msg": "The server disconnected you"}
         i = 1
         for sock in self.inputs:
@@ -444,13 +493,14 @@ class TableManager:
                 print("Disconnecting player " + str(i) + "/" + str(size))
                 msgEncrypt = self.dh_keys[sock][2].cipher(encodeBase64(msg))
                 sock.send(pickle.dumps(msgEncrypt))
-                i+=1
+                i += 1
         print("Disconnecting Server ")
         self.server.close()
         sys.exit(0)
+
 
 try:
     NUM_PLAYERS = int(sys.argv[1])
 except:
     NUM_PLAYERS = 3
-a = TableManager('localhost', 50000,NUM_PLAYERS)
+a = TableManager('localhost', 50000, NUM_PLAYERS)

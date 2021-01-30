@@ -11,24 +11,7 @@ import random
 from security import diffieHellman, encodeBase64, decodeBase64
 from security import SymCipher
 from cc_utils import getSerial
-
-
-class bitCommit():
-
-    def __init__(self, float1, float2, tiles):
-        self.float1 = float1
-        self.float2 = float2
-        self.tiles = tiles
-        self.newTiles = ""
-
-    def __hash__(self):
-        for a in self.tiles:
-            self.newTiles += str(a)
-        self.value = hash((self.float1, self.float2, self.newTiles))
-
-    def value(self):
-        return self.value()
-
+from bitCommit import *
 
 class client():
 
@@ -46,7 +29,6 @@ class client():
         self.receiveData()
         self.randomB1 = 0
         self.randomB2 = 0
-        self.bitCom = 0
 
     def receiveData(self):
         while True:
@@ -208,20 +190,6 @@ class client():
             # print("deck -> " + ' '.join(map(str, self.player.deck)) + "\n")
             # print("hand -> " + ' '.join(map(str, self.player.hand)))
 
-            if len(self.player.hand) is 5:
-                # print(set(self.player.hand))
-                # print("playedHand -> " + ' '.join(map(str, self.player.playedHand)))
-
-                self.randomB1 = random.random()
-                self.randomB2 = random.random()
-                orderedTiles = set(self.player.hand)
-                a = hash(self.randomB1)
-                b = hash(self.randomB2)
-                c = orderedTiles.__hash__
-                self.bitCom = str(a) + str(b) + str(c)
-                # hash((self.randomB1, self.randomB2, orderedTiles))
-                makePublic = (self.randomB1, self.bitCom)
-
             print("in table -> " + ' '.join(map(str, data["in_table"])) + "\n")
             print("Current player ->", player_name)
             print("next Action ->", data["next_action"])
@@ -294,13 +262,12 @@ class client():
                     R1 = random.randint(0, 1023)
                     R2 = random.randint(0, 1023)
                     com = bitCommit(R1, R2, tiles)
-                    com.__hash__()
+                    bitC = com.value()
                     self.player.bc = com
-                    bitC = com.value
                     self.R1 = R1
                     print("aqui tbem")
 
-                    msg = {"action": "bitCommit", "userData": (R1, bitC)}
+                    msg = {"action": "bitCommit", "userData": (R1, bitC, self.player.name)}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     print("e aqui")
 
@@ -360,27 +327,28 @@ class client():
         elif action == "end_game":
 
             winner = data["winner"]
-            count = 0
-            pseudonimos = []
+            if data["winner"] == self.player.name:
 
-            for a in self.player.bc.tiles:
-                for key, value in self.chaves.items():
-                    if key == a:
-                        a = self.player.decipherToTuple(value, a)
+                count = 0
+                pseudonimos = []
 
-                pseudonimos.append(a)
+                for a in self.player.bc.tiles:
+                    for key, value in self.chaves.items():
+                        if key == a:
+                            a = self.player.decipherToTuple(value, a)
 
-            for p in pseudonimos:
-                print(p)
+                    pseudonimos.append(a)
 
-            input("É AQUI MM")
+                for p in pseudonimos:
+                    print(p)
 
-            tup = (self.player.bc.float2, self.player.bc.tiles)
+                input("É AQUI MM")
 
-            msg = {"action": "verifyBC", "userData": tup}
-            msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
-            self.sock.send(pickle.dumps(msgEncrypt))
+                tup = (self.player.bc.float2, self.player.bc.tiles, pseudonimos, self.player.name)
 
+                msg = {"action": "verifyBC", "userData": tup}
+                msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                self.sock.send(pickle.dumps(msgEncrypt))
 
         elif action == "reg_points":
 

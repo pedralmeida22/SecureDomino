@@ -19,7 +19,7 @@ class Game:
         self.all_ready_to_play = False
         self.allEncriptDeck = False
         self.allSendKeys = False
-        self.commits = []
+        self.commits = {}
 
     def commitsDone(self):
         return len(self.commits) == self.nplayers

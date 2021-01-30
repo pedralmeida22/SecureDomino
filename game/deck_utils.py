@@ -208,6 +208,17 @@ class Player:
             return False
         return True
 
+    def samePiece(self, piece1, piece2):
+        a1=piece1.values[0].value
+        b1=piece1.values[1].value
+        a2=piece2.values[0].value
+        b2=piece2.values[1].value
+
+        if a1 == a2 or a1 == b2:
+            if b1 == a2 or b1 == b2:
+                return True
+
+        return False
 
     def play(self):
         res = {}
@@ -260,7 +271,7 @@ class Player:
                 # if there is no piece to play try to pick a piece, if there is no piece to pick pass
                 else:
                     input("VOU BUSCAR")
-                    r = random.choices(['pick_piece', 'cheat'], weights=[5, 1], k=1)
+                    r = random.choices(['pick_piece', 'cheat'], weights=[200, 1], k=1)
                     if r == ['pick_piece']:
                         if len(self.deck)>0:
                             res = self.pickPiece()
