@@ -49,21 +49,15 @@ class Game:
             pontos = dict()
             for a in ar:
                 linha = a.split(" -- ")
-                print("LINHAS:")
-                print(linha)
                 pontos[linha[0]] = linha[1]
 
             try:
                 pont = int(pontos[str(serial)])
                 novos = pont + points
                 pontos[str(serial)] = novos
-                print("FOI no try")
-                print(str(serial))
-                print(novos)
 
             except:
                 pontos[str(serial)] = points
-                print("FOI no except")
 
             for key, value in pontos.items():
                 fW.write(str(key) + " -- " + str(value) + "\n")

@@ -60,10 +60,8 @@ class client():
         if action == "whatIsThisPiece":
             # print("PECA;;;;",data["piece"])
             if data["piece"] in self.player.keyMapDeck.keys():
-                print("TRUEEEEEEEEEEE")
                 msg = {"action": "KeyToPiece", "key": self.player.keyMapDeck[data["piece"]], "piece": data["piece"]}
                 if self.player.pickingPiece:
-                    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1111111")
                     piece = self.player.decipherPiece(self.player.keyMapDeck[data["piece"]], data["piece"])
                     msg.update({"sendKey": False})
                     if isinstance(piece, tuple):
@@ -74,7 +72,6 @@ class client():
 
                 msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                 self.sock.send(pickle.dumps(msgEncrypt))
-                print("AQUIIIII")
 
         if action == "tuploToPiece":
             print(data["piece"])
@@ -171,7 +168,6 @@ class client():
                 #input("TESTE")
 
                 if len(data["deck"]) == (28-self.player.pieces_per_player * self.player.nplayers): #todas já apanharam as pecas
-                    print("ACABOU")
                     msg = {"action": "selectionStage_end", "deck": self.player.deck}
                 else:
                     if not self.player.ready_to_play:
@@ -258,7 +254,6 @@ class client():
                     self.sock.send(pickle.dumps(msgEncrypt))
 
                 if data["next_action"] == "get_piece":
-                    print("AHSIDAPBÇDASKJD\n\n\n")
                     #print(self.dh_keys)
                     #input("TESTE")
 
@@ -365,7 +360,6 @@ class client():
                 for p in pseudonimos:
                     print(p)
 
-                input("É AQUI MM")
 
                 tup = (self.player.bc.float2, self.player.bc.tiles, pseudonimos, self.player.name)
 

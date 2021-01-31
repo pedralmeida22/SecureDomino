@@ -210,10 +210,8 @@ class TableManager:
 
             if action == "reg_points":
                 if data["msg"][0] == None or data["msg"][0] == "None":
-                    print("TUDO BEM")
                     self.game.addPoints(data["msg"][2], data["msg"][1])
                 else:
-                    print("TUDO MAL")
                     self.game.addPoints(data["msg"][0], data["msg"][1])
 
             if action == "KeyToPiece":
@@ -246,7 +244,6 @@ class TableManager:
             if action == "selectionStage_end": # tive que passar para fora do if do currentPlayer, pq pode ser qualquer um a mandar
                 self.game.deck.deck = data["deck"]
                 print("GETPIECEDECK--->", len(self.game.deck.deck))
-                input("TESTEAAAA")
 
                 msg = {"action": "rcv_game_propreties"}
 
@@ -277,7 +274,6 @@ class TableManager:
             if action == "prep_stage_end":
                 self.game.public_keys_list = data["public_keys"]
                 self.game.nextPlayer()
-                input("SERAAAA")
 
                 msg = {"action": "rcv_game_propreties", "public_keys": self.game.public_keys_list}
                 #if self.game.check_added_to_public_list():
@@ -357,7 +353,6 @@ class TableManager:
                     self.send_all(msg, sock)
 
                 elif action == "bitCommit":
-                    print("TESTE DE BIT COMMIT __________")
                     self.game.commits[data["userData"][2]]=(data["userData"][0],data["userData"][1])
                     self.game.nextPlayer()
                     msg = {"action": "rcv_game_propreties"}
@@ -376,13 +371,9 @@ class TableManager:
 
                 if action == "verifyBC":
                     r2 = data["userData"][0]
-                    print("R2 ->")
-                    print(r2)
 
                     tiles = data["userData"][1]
                     pseudos=data["userData"][2]
-
-                    print("VAI VERIFICAR")
 
                     tuploInicial = self.game.commits[data["userData"][3]]
 
@@ -390,7 +381,6 @@ class TableManager:
                     novoValor = novoBC.value()
 
                     if(novoValor == tuploInicial[1]):
-                        input("São IGUAIS")
                         # VERIFICAR CADA PLAYED HAND COM CADA BIT COMMIT
                         # for p1 in pseudos:
                         #     print(self.game.reveal_piece(p1)[1])
@@ -398,9 +388,8 @@ class TableManager:
                         # for p2 in player.playedHand:
                         #     print(p2)
 
-                        checks=False
                         for p in pseudos:
-
+                            checks=False
                             peca=self.game.reveal_piece(p)[1]
 
                             for playeds in player.playedHand:
@@ -413,13 +402,15 @@ class TableManager:
                                 input("FEZ BATOTA - PECAS NAO CORRESPONDENTES")
                                 break
 
+                        if checks:
+                            msg = {"action": "reg_points", "winner": player.name}
+                            msg.update(self.game.toJson())
+                            self.send_all(msg, sock)
+
 
                     else:
                         input("FEZ BATOTA - BC NAO CORRESPONDENTES")
 
-                    msg = {"action": "reg_points", "winner": player.name}
-                    msg.update(self.game.toJson())
-                    self.send_all(msg, sock)
 
                 elif action == "prep_stage":
                     self.game.public_keys_list = data["public_keys"]

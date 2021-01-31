@@ -323,7 +323,6 @@ class Player:
                     res = {"action": "play_piece", "piece": piece,"edge":edge,"win":self.checkifWin()}
                 # if there is no piece to play try to pick a piece, if there is no piece to pick pass
                 else:
-                    input("VOU BUSCAR")
                     r = random.choices(['pick_piece', 'cheat'], weights=[200, 1], k=1)
                     if r == ['pick_piece']:
                         if len(self.deck)>0:
