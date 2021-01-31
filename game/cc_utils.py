@@ -90,7 +90,6 @@ def getSerial():
                         print(' Verification failed: ')
                         print(ex)
 
-
 def info_card():
     lib=getLib()
     pkcs11 = PyKCS11.PyKCS11Lib()

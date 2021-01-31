@@ -209,9 +209,12 @@ class TableManager:
                 return pickle.dumps(msgEncrypt)
 
             if action == "reg_points":
-
-                self.game.addPoints(data["msg"][0],data["msg"][1])
-                print("GAJO:")
+                if data["msg"][0] == None or data["msg"][0] == "None":
+                    print("TUDO BEM")
+                    self.game.addPoints(data["msg"][2], data["msg"][1])
+                else:
+                    print("TUDO MAL")
+                    self.game.addPoints(data["msg"][0], data["msg"][1])
 
             if action == "KeyToPiece":
                 print("DECIPHER", self.playerIndexRevealKey)

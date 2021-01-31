@@ -382,7 +382,7 @@ class client():
                 if choice is "":
                     print("Reading card...")
                     serial = getSerial()
-                    msg = {"action": "reg_points", "msg": (serial, self.player.score)}
+                    msg = {"action": "reg_points", "msg": (serial, self.player.score, self.player.name)}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
             else:
@@ -392,7 +392,7 @@ class client():
                 if choice is "":
                     print("Reading card...")
                     serial = getSerial()
-                    msg = {"action": "reg_points", "msg": (serial, self.player.score)}
+                    msg = {"action": "reg_points", "msg": (serial, self.player.score, self.player.name)}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
 
