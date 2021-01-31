@@ -225,10 +225,10 @@ class TableManager:
                     msg = {"action": "KeyToPiecePlayer", "key": data["key"], "piece": data["piece"]}
                     print("MSGSEND:::::", msg)
                     self.send_to_player(msg, self.playerGetPiece)
+                    time.sleep(0.2)  # give server time to send all messages
                 if not isinstance(piece, Piece):
                     msg1 = {"action": "whatIsThisPiece", "piece": piece}
                     print("MSGSEND:::::", msg1)
-                    time.sleep(0.2)  # give server time to send all messages
                     self.send_to_player(msg1, self.game.players[self.playerIndexRevealKey].socket)
                 self.playerIndexRevealKey -= 1
 
