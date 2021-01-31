@@ -209,11 +209,11 @@ class TableManager:
                 return pickle.dumps(msgEncrypt)
 
             if action == "reg_points":
-                self.points[data["msg"]] = 10
+
+                self.game.addPoints(data["msg"],100)
                 print("GAJO:")
                 s = SymCipher("cc")
                 print(decodeBase64(s.decipher(data["msg"])))
-                print(self.points[data["msg"]])
 
             if action == "KeyToPiece":
                 print("DECIPHER", self.playerIndexRevealKey)
