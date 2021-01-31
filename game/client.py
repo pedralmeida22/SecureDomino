@@ -351,7 +351,7 @@ class client():
 
             winner = data["winner"]
             if data["winner"] == self.player.name:
-
+                self.player.score+=100
                 count = 0
                 pseudonimos = []
 
@@ -382,11 +382,19 @@ class client():
                 if choice is "":
                     print("Reading card...")
                     serial = getSerial()
-                    msg = {"action": "reg_points", "msg": serial}
+                    msg = {"action": "reg_points", "msg": (serial, self.player.score)}
                     msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
                     self.sock.send(pickle.dumps(msgEncrypt))
             else:
                 winner = Colors.BBlue + data["winner"] + Colors.Color_Off
+                choice = input("Save points? (blank/n")
+
+                if choice is "":
+                    print("Reading card...")
+                    serial = getSerial()
+                    msg = {"action": "reg_points", "msg": (serial, self.player.score)}
+                    msgEncrypt = self.dh_keys['server'][2].cipher(encodeBase64(msg))
+                    self.sock.send(pickle.dumps(msgEncrypt))
 
             print(Colors.BGreen + "End GAME, THE WINNER IS: " + winner)
 

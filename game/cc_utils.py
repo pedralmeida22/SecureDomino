@@ -2,6 +2,9 @@ from PyKCS11 import *
 from PyKCS11.LowLevel import *
 import os
 import platform
+import hmac
+import hashlib
+import base64
 import random
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -73,8 +76,13 @@ def getSerial():
                         serial=session.getAttributeValue(obj, [CKA_SERIAL_NUMBER], True)[0]
                         session.closeSession
 
-                        sym=SymCipher("cc")
-                        res=sym.cipher(encodeBase64(serial))
+                        # sym=SymCipher("cc")
+                        # res=sym.cipher(encodeBase64(serial))
+
+                        key=len(serial)
+
+                        a = hmac.new(bytes(str(key), "utf-8"), msg=encodeBase64(serial), digestmod=hashlib.sha256).digest()
+                        res = base64.b64encode(a).decode()
 
                         print(res)
                         return res

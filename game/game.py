@@ -30,29 +30,40 @@ class Game:
     def allPlayersWithPieces(self):
         return all([p.num_pieces == p.pieces_per_player for p in self.players])
 
-    def addPoints(self,serial,pontos):
+    def addPoints(self,serial,points):
         fA = open("points.txt", "r", encoding="utf-8")
         texto = fA.read()
 
         if texto == "":
             fW = open("points.txt", "a", encoding="utf-8")
-            fW.write(str(serial) + " -- " + str(pontos))
+            fW.write(str(serial) + " -- " + str(points))
 
         else:
             fW = open("points.txt", "w", encoding="utf-8")
 
             ar = texto.split("\n")
+            for a2 in ar:
+                if a2 == "":
+                    ar.remove(a2)
+
             pontos = dict()
             for a in ar:
                 linha = a.split(" -- ")
+                print("LINHAS:")
+                print(linha)
                 pontos[linha[0]] = linha[1]
 
             try:
                 pont = int(pontos[str(serial)])
-                novos = pont + pontos
+                novos = pont + points
                 pontos[str(serial)] = novos
+                print("FOI no try")
+                print(str(serial))
+                print(novos)
+
             except:
-                pontos[str] = pontos
+                pontos[str(serial)] = points
+                print("FOI no except")
 
             for key, value in pontos.items():
                 fW.write(str(key) + " -- " + str(value) + "\n")

@@ -210,10 +210,8 @@ class TableManager:
 
             if action == "reg_points":
 
-                self.game.addPoints(data["msg"],100)
+                self.game.addPoints(data["msg"][0],data["msg"][1])
                 print("GAJO:")
-                s = SymCipher("cc")
-                print(decodeBase64(s.decipher(data["msg"])))
 
             if action == "KeyToPiece":
                 print("DECIPHER", self.playerIndexRevealKey)
