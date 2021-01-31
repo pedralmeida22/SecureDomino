@@ -227,7 +227,7 @@ class TableManager:
                     print("MSGSEND:::::", msg)
                     self.send_to_player(msg, self.playerGetPiece)
                     time.sleep(0.2)  # give server time to send all messages
-                if not isinstance(piece, Piece):
+                if not isinstance(piece, tuple):
                     msg1 = {"action": "whatIsThisPiece", "piece": piece}
                     print("MSGSEND:::::", msg1)
                     self.send_to_player(msg1, self.game.players[self.playerIndexRevealKey].socket)

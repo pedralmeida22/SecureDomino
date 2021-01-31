@@ -49,8 +49,8 @@ class client():
             key = data["key"]
             print("KEYTOPIECE", data["piece"])
             piece = self.player.decipherPiece(key, data["piece"])
-            if piece in self.player.keyMapDeck.keys():
-                piece = self.player.decipherPiece(self.player.keyMapDeck[piece], piece,True)
+            # if piece in self.player.keyMapDeck.keys():
+            #     piece = self.player.decipherPiece(self.player.keyMapDeck[piece], piece,True)
             if isinstance(piece, tuple):
                 self.player.pickingPiece = False
                 msg = {"action": "tuploToPiece", "deck": self.player.deck, "tuplo": piece}
