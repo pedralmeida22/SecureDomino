@@ -114,7 +114,7 @@ class Game:
             if tile in keys.keys():
                 key = keys[tile]
                 plaintext = decodeBase64(SymCipher.decipherKey(tile, key))
-                print("PECA: ", plaintext)
+                #print("PECA: ", plaintext)
                 tmp.append(plaintext)
         if len(tmp) > 0:
             self.completeDeck = tmp + self.deck.deck    #adiciona as que não estao nas hands
@@ -123,18 +123,18 @@ class Game:
         index = self.completeDeck.index(piece)
         oldPiece = self.completeDeck.pop(index)
         newPiece = decodeBase64(SymCipher.decipherKey(oldPiece,key))
-        print("PECA::::",newPiece)
+        #print("PECA::::",newPiece)
         self.completeDeck.append(newPiece)
         return newPiece
 
     def check_added_to_public_list(self):
         count = 0
-        print("pu list: ", self.public_keys_list)
+        #print("pu list: ", self.public_keys_list)
         for i in self.public_keys_list:
             if i is None:
                 count += 1
-        print("count: ", count)
-        print("n pecas: ", self.players[0].pieces_per_player)
+        #print("count: ", count)
+        #print("n pecas: ", self.players[0].pieces_per_player)
         # n nones expected = total de peças - num_players * num_pecas_player
         if count == 28 - self.nplayers * self.players[0].pieces_per_player:
             return True

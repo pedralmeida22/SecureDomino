@@ -223,8 +223,7 @@ class client():
             self.player.in_table = data["in_table"]
             self.player.deck = data["deck"]
             player_name = data["next_player"]
-            if "teste" in data.keys():
-                print("#############", data["teste"])
+
             if data["next_player"] == self.player.name:
                 player_name = Colors.BRed + "YOU" + Colors.Color_Off
             # print("deck -> " + ' '.join(map(str, self.player.deck)) + "\n")

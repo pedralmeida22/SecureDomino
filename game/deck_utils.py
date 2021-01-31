@@ -53,7 +53,7 @@ class Player:
 
     def get_piece(self):
         # r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
-        r = random.choices(['pickup', 'backoff'], weights=[5, 1], k=1)
+        r = random.choices(['pickup', 'backoff'], weights=[5, 95], k=1)
         print(r)
         # input("enter:")
         # pickup
@@ -144,7 +144,7 @@ class Player:
 
     def decipherToTuple(self, key, peca):
         newPiece = decodeBase64(SymCipher.decipherKey(peca, key))
-        print("PECA::::", newPiece)
+        #print("PECA::::", newPiece)
         return newPiece
 
     def decipherPiece(self, key, peca, check_tuplo=False):
@@ -152,13 +152,13 @@ class Player:
         if len(pieces) == 0:
             return None
         piece = pieces[0]
-        print("ASDASD",piece)
+        #print("ASDASD",piece)
         #if peca == piece:
-        print("TRUEEEEEEE", len(self.hand))
+        #print("TRUEEEEEEE", len(self.hand))
         
-        print("HAND",len(self.hand))
+        #print("HAND",len(self.hand))
         newPiece = decodeBase64(SymCipher.decipherKey(piece, key))
-        print("PECA::::",newPiece)
+        #print("PECA::::",newPiece)
         if check_tuplo:
             if not isinstance(newPiece,tuple):
                 return peca
@@ -183,12 +183,12 @@ class Player:
 
     def check_added_to_public_list(self):
         count = 0
-        print("pu list: ", self.public_keys_list)
+        #print("pu list: ", self.public_keys_list)
         for i in self.public_keys_list:
             if i is None:
                 count += 1
-        print("count: ", count)
-        print("n pecas: ", self.pieces_per_player)
+        #print("count: ", count)
+        #print("n pecas: ", self.pieces_per_player)
         # n nones expected = total de peças - num_players * num_pecas_player
         if count == 28 - self.nplayers * self.pieces_per_player:
             return True
@@ -196,8 +196,8 @@ class Player:
 
     def preparation(self):
         # mudar probabilidades
-        decision = random.choices(['add', 'backoff'], weights=[1, 1], k=1)
-        print(decision)
+        decision = random.choices(['add', 'backoff'], weights=[5, 95], k=1)
+        #print(decision)
 
         if decision == ['add']:
             index_pecas, index_lista = self.find_piece_without_key()
@@ -221,11 +221,11 @@ class Player:
     def de_anonymization_piece(self,tile,tuplo):
         info = pickle.loads(AsymCipher.decipherKey(tile,tuplo[2]))
         piece = Piece(info[1],info[2])
-        print(piece.__str__())
+        #print(piece.__str__())
         dig = hmac.new(bytes(info[0], "utf-8"), msg=encodeBase64(piece), digestmod=hashlib.sha256).digest()
         res = base64.b64encode(dig).decode()
         if res == tuplo[1]:
-            print("TRUEEEEEEEEEEEEEEEEEEEEEEE")
+            #print("TRUEEEEEEEEEEEEEEEEEEEEEEE")
             return piece
         return None
 
@@ -244,7 +244,7 @@ class Player:
         old = [p for p in self.hand if isinstance(p,tuple)][0]
         print(old)
         if res == old[1]:
-            print("TRUEEEEEEEEEEEEEEEEEEEEEEE")
+            #print("TRUEEEEEEEEEEEEEEEEEEEEEEE")
             self.hand.remove(old)
             self.hand.append(piece)
 
